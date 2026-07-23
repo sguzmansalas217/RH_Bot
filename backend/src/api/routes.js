@@ -1,0 +1,175 @@
+import { Router } from 'express';
+import { login, requireAuth } from './auth.js';
+import { one, query } from '../db/pool.js';
+import { crearObra } from '../services/geofence.js';
+import { resolver, pendientes } from '../services/leaves.js';
+import { calcularNomina } from '../services/payroll/index.js';
+import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
+
+export const api = Router();
+
+api.post('/login', login);
+
+// Todo lo demás requiere token
+api.use(requireAuth);
+const emp = (req) => req.user.empresa_id;
+
+// ─── Empleados ───
+api.get('/empleados', async (req, res) => {
+  const { rows } = await query(
+    `SELECT e.*, p.nombre AS puesto, d.nombre AS departamento, o.nombre AS obra
+       FROM empleados e
+       LEFT JOIN puestos p ON p.id=e.puesto_id
+       LEFT JOIN departamentos d ON d.id=e.departamento_id
+       LEFT JOIN obras o ON o.id=e.obra_id
+      WHERE e.empresa_id=$1 ORDER BY e.nombre`,
+    [emp(req)]
+  );
+  res.json(rows);
+});
+
+api.post('/empleados', async (req, res) => {
+  const b = req.body;
+  const row = await one(
+    `INSERT INTO empleados
+       (empresa_id, numero_empleado, nombre, whatsapp, curp, rfc, nss,
+        departamento_id, puesto_id, obra_id, horario_id, salario_diario,
+        salario_diario_integrado, fecha_ingreso, dias_vacaciones_saldo)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15)
+     RETURNING *`,
+    [emp(req), b.numero_empleado, b.nombre, b.whatsapp, b.curp, b.rfc, b.nss,
+      b.departamento_id, b.puesto_id, b.obra_id, b.horario_id, b.salario_diario || 0,
+      b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0]
+  );
+  res.status(201).json(row);
+});
+
+api.put('/empleados/:id', async (req, res) => {
+  const b = req.body;
+  const row = await one(
+    `UPDATE empleados SET
+        nombre=COALESCE($2,nombre), whatsapp=COALESCE($3,whatsapp),
+        departamento_id=$4, puesto_id=$5, obra_id=$6, horario_id=$7,
+        salario_diario=COALESCE($8,salario_diario),
+        salario_diario_integrado=COALESCE($9,salario_diario_integrado),
+        dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo)
+      WHERE id=$1 AND empresa_id=$11 RETURNING *`,
+    [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, b.obra_id,
+      b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req)]
+  );
+  res.json(row);
+});
+
+// Baja de empleado
+api.delete('/empleados/:id', async (req, res) => {
+  await query(`UPDATE empleados SET activo=false, fecha_baja=CURRENT_DATE WHERE id=$1 AND empresa_id=$2`, [
+    req.params.id, emp(req),
+  ]);
+  res.json({ ok: true });
+});
+
+// ─── Catálogos ───
+for (const [ruta, tabla] of [['departamentos', 'departamentos'], ['puestos', 'puestos'], ['horarios', 'horarios']]) {
+  api.get(`/${ruta}`, async (req, res) => {
+    const { rows } = await query(`SELECT * FROM ${tabla} WHERE empresa_id=$1 ORDER BY id`, [emp(req)]);
+    res.json(rows);
+  });
+}
+api.post('/departamentos', async (req, res) => {
+  res.status(201).json(await one(`INSERT INTO departamentos (empresa_id,nombre) VALUES ($1,$2) RETURNING *`, [emp(req), req.body.nombre]));
+});
+api.post('/puestos', async (req, res) => {
+  res.status(201).json(await one(`INSERT INTO puestos (empresa_id,nombre,salario_base) VALUES ($1,$2,$3) RETURNING *`, [emp(req), req.body.nombre, req.body.salario_base || 0]));
+});
+api.post('/horarios', async (req, res) => {
+  const b = req.body;
+  res.status(201).json(await one(
+    `INSERT INTO horarios (empresa_id,nombre,hora_entrada,hora_salida,dias_laborales,minutos_comida)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [emp(req), b.nombre, b.hora_entrada, b.hora_salida, b.dias_laborales || [1,2,3,4,5,6], b.minutos_comida || 60]
+  ));
+});
+
+// ─── Obras / geocercas ───
+api.get('/obras', async (req, res) => {
+  const { rows } = await query(
+    `SELECT id, nombre, tipo, radio_metros, activa,
+            ST_Y(ubicacion::geometry) AS lat, ST_X(ubicacion::geometry) AS lon
+       FROM obras WHERE empresa_id=$1 ORDER BY nombre`,
+    [emp(req)]
+  );
+  res.json(rows);
+});
+api.post('/obras', async (req, res) => {
+  const b = req.body;
+  res.status(201).json(await crearObra({ empresaId: emp(req), ...b }));
+});
+
+// ─── Asistencias / incidencias ───
+api.get('/asistencias', async (req, res) => {
+  const { desde, hasta } = req.query;
+  const { rows } = await query(
+    `SELECT a.*, e.nombre AS empleado, o.nombre AS obra
+       FROM asistencias a JOIN empleados e ON e.id=a.empleado_id
+       LEFT JOIN obras o ON o.id=a.obra_id
+      WHERE e.empresa_id=$1 AND a.fecha BETWEEN $2 AND $3
+      ORDER BY a.fecha DESC, e.nombre`,
+    [emp(req), desde || '2000-01-01', hasta || '2999-12-31']
+  );
+  res.json(rows);
+});
+api.get('/incidencias', async (req, res) => {
+  const { rows } = await query(
+    `SELECT i.*, e.nombre AS empleado FROM incidencias i
+       JOIN empleados e ON e.id=i.empleado_id
+      WHERE e.empresa_id=$1 ORDER BY i.creado_en DESC LIMIT 200`,
+    [emp(req)]
+  );
+  res.json(rows);
+});
+
+// ─── Solicitudes (aprobar/rechazar) ───
+api.get('/pendientes', async (req, res) => res.json(await pendientes(emp(req))));
+api.post('/solicitudes/:tipo/:id/resolver', async (req, res) => {
+  const { tipo, id } = req.params;
+  const { estatus, observaciones } = req.body;
+  const row = await resolver(tipo, id, { estatus, adminId: req.user.id, observaciones });
+  res.json(row);
+});
+
+// ─── Nómina ───
+api.post('/periodos', async (req, res) => {
+  const b = req.body;
+  res.status(201).json(await one(
+    `INSERT INTO periodos_nomina (empresa_id,tipo,fecha_inicio,fecha_fin) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [emp(req), b.tipo || 'semanal', b.fecha_inicio, b.fecha_fin]
+  ));
+});
+api.get('/periodos', async (req, res) => {
+  const { rows } = await query(`SELECT * FROM periodos_nomina WHERE empresa_id=$1 ORDER BY fecha_inicio DESC`, [emp(req)]);
+  res.json(rows);
+});
+api.post('/periodos/:id/calcular', async (req, res) => {
+  try {
+    res.json(await calcularNomina(parseInt(req.params.id, 10)));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+api.get('/periodos/:id/recibos', async (req, res) => {
+  const { rows } = await query(
+    `SELECT r.*, e.nombre AS empleado FROM recibos_nomina r
+       JOIN empleados e ON e.id=r.empleado_id WHERE r.periodo_id=$1 ORDER BY e.nombre`,
+    [req.params.id]
+  );
+  res.json(rows);
+});
+
+// ─── Reportes ───
+api.get('/reportes/asistencia.xlsx', async (req, res) => {
+  const { desde, hasta } = req.query;
+  await asistenciaExcel(res, emp(req), desde || '2000-01-01', hasta || '2999-12-31');
+});
+api.get('/recibos/:id.pdf', async (req, res) => {
+  await reciboPDF(res, parseInt(req.params.id, 10));
+});
