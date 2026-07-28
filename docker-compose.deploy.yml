@@ -36,8 +36,25 @@ services:
       - ./backend/.baileys_auth:/app/.baileys_auth   # sesión de WhatsApp (persistente)
       - ./backend/uploads:/app/uploads               # comprobantes subidos
       - ./frontend/dist:/frontend/dist:ro            # panel Vue compilado
+    expose:
+      - "3000"   # solo dentro de la red de Docker; Caddy la publica por HTTPS
+
+  # Proxy con HTTPS automático (Let's Encrypt). Publica el dominio en 443
+  # y redirige el puerto 80 a 443. Renueva el certificado solo.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
     ports:
-      - "80:3000"   # el panel queda en http://IP_DEL_DROPLET/
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
