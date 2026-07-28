@@ -3,6 +3,7 @@ import {
   useMultiFileAuthState,
   DisconnectReason,
   downloadMediaMessage,
+  fetchLatestBaileysVersion,
 } from '@whiskeysockets/baileys';
 import https from 'node:https';
 import qrcode from 'qrcode-terminal';
@@ -27,6 +28,11 @@ export function createBaileysChannel() {
   async function start() {
     const { state, saveCreds } = await useMultiFileAuthState(config.whatsapp.baileysAuthDir);
 
+    // Usa la versión ACTUAL de WhatsApp Web. Sin esto, Baileys usa una versión fija
+    // que WhatsApp rechaza con "Connection Failure (code 405)" y nunca aparece el QR.
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    logger.info({ version, isLatest }, '📦 Versión de WhatsApp Web para Baileys');
+
     // Redes corporativas con inspección SSL: agente que no valida el certificado
     // del proxy (solo para la conexión de WhatsApp; actívalo con WHATSAPP_INSECURE_TLS).
     let agent;
@@ -36,10 +42,12 @@ export function createBaileysChannel() {
     }
 
     sock = makeWASocket({
+      version,
       auth: state,
       printQRInTerminal: false,
       logger: logger.child({ mod: 'baileys' }),
       markOnlineOnConnect: false,
+      browser: ['RH Bot', 'Chrome', '120.0.0'],
       agent,
       fetchAgent: agent,
     });
