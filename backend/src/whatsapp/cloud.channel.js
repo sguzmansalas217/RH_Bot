@@ -20,37 +20,46 @@ export function createCloudChannel() {
     logger.info('Canal Cloud API listo (los mensajes llegan por webhook).');
   }
 
-  async function sendText(to, text) {
+  // Normaliza el número destino al formato que Meta acepta para ENVIAR.
+  // México: WhatsApp entrega el remitente como 521XXXXXXXXXX (13 dígitos, con el "1"),
+  // pero para enviar hay que usar 52XXXXXXXXXX (sin el "1"), o Meta responde 131030.
+  function normalizeTo(num) {
+    const n = String(num).replace(/\D/g, '');
+    if (n.startsWith('521') && n.length === 13) return '52' + n.slice(3);
+    return n;
+  }
+
+  // Envío genérico: arma el body, hace el POST y registra el detalle si falla.
+  async function enviar(to, payload, contexto) {
     const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to,
-        type: 'text',
-        text: { body: text },
-      }),
+      body: JSON.stringify({ messaging_product: 'whatsapp', to: normalizeTo(to), ...payload }),
     });
-    if (!res.ok) logger.error({ status: res.status }, 'Error enviando texto Cloud API');
+    if (!res.ok) {
+      const detalle = await res.text().catch(() => '');
+      logger.error({ status: res.status, to, detalle }, `Error ${contexto} Cloud API`);
+    }
+  }
+
+  async function sendText(to, text) {
+    await enviar(to, { type: 'text', text: { body: text } }, 'enviando texto');
   }
 
   async function requestLocation(to, text) {
     // Cloud API sí soporta botón nativo de solicitud de ubicación (interactive location_request)
-    const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to,
+    await enviar(
+      to,
+      {
         type: 'interactive',
         interactive: {
           type: 'location_request_message',
           body: { text },
           action: { name: 'send_location' },
         },
-      }),
-    });
-    if (!res.ok) logger.error({ status: res.status }, 'Error solicitando ubicación Cloud API');
+      },
+      'solicitando ubicación'
+    );
   }
 
   function onMessage(handler) {
