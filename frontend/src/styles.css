@@ -27,8 +27,8 @@ th { background: #fafafa; color: var(--muted); font-weight: 600; }
 .badge.rechazado, .badge.rechazada { background: #fee2e2; color: #991b1b; }
 
 /* Layout */
-.login-wrap { display: flex; min-height: 100vh; align-items: center; justify-content: center; }
-.login-box { width: 340px; }
+.login-wrap { display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 16px; }
+.login-box { width: min(340px, 100%); }
 .shell { display: flex; min-height: 100vh; }
 .sidebar { width: 220px; background: var(--primary-dark); color: #fff; padding: 20px 0; }
 .sidebar h1 { font-size: 18px; padding: 0 20px 16px; margin: 0; border-bottom: 1px solid rgba(255,255,255,.15); }
@@ -38,5 +38,43 @@ th { background: #fafafa; color: var(--muted); font-weight: 600; }
 .main h2 { margin-top: 0; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; }
-.modal { background: #fff; border-radius: 10px; padding: 24px; width: 440px; max-height: 90vh; overflow: auto; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: #fff; border-radius: 10px; padding: 24px; width: min(440px, 100%); max-height: 90vh; overflow: auto; }
+
+/* Barra superior y overlay: ocultos en escritorio, se activan en móvil */
+.topbar { display: none; }
+.overlay { display: none; }
+
+/* ─────────── RESPONSIVE (móvil / tablet) ─────────── */
+@media (max-width: 820px) {
+  .shell { flex-direction: column; }
+
+  /* Barra superior con botón de menú */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--primary-dark); color: #fff;
+    padding: 12px 14px; position: sticky; top: 0; z-index: 30;
+  }
+  .hamburger { background: transparent; color: #fff; font-size: 22px; padding: 4px 10px; line-height: 1; }
+  .topbar-title { font-size: 16px; font-weight: 600; }
+
+  /* El menú lateral se vuelve un cajón deslizable */
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 250px;
+    transform: translateX(-100%); transition: transform .25s ease;
+    z-index: 40; overflow-y: auto;
+  }
+  .sidebar.open { transform: translateX(0); box-shadow: 2px 0 12px rgba(0,0,0,.3); }
+  .sidebar a { padding: 14px 20px; font-size: 15px; }
+
+  .overlay { display: block; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 35; }
+
+  .main { padding: 16px 12px; }
+  .toolbar { flex-wrap: wrap; gap: 10px; }
+
+  /* Formularios de 2 columnas → 1 columna */
+  .grid2 { grid-template-columns: 1fr; }
+
+  /* Tablas anchas: permitir deslizar de lado en vez de romper el diseño */
+  table { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+}

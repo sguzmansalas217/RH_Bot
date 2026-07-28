@@ -13,6 +13,7 @@ const email = ref('admin@demo.com');
 const password = ref('admin123');
 const error = ref('');
 const vista = ref('empleados');
+const menuOpen = ref(false); // menú lateral abierto en móvil
 
 const vistas = {
   empleados: Empleados,
@@ -45,6 +46,11 @@ function logout() {
   clearToken();
   logged.value = false;
 }
+// En móvil: cambia de vista y cierra el menú deslizable
+function selectVista(key) {
+  vista.value = key;
+  menuOpen.value = false;
+}
 </script>
 
 <template>
@@ -59,9 +65,18 @@ function logout() {
   </div>
 
   <div v-else class="shell">
-    <nav class="sidebar">
+    <!-- Barra superior (solo visible en móvil) -->
+    <header class="topbar">
+      <button class="hamburger" @click="menuOpen = true" aria-label="Abrir menú">☰</button>
+      <span class="topbar-title">🤖 RH WhatsApp</span>
+    </header>
+
+    <!-- Fondo oscuro al abrir el menú en móvil -->
+    <div v-if="menuOpen" class="overlay" @click="menuOpen = false"></div>
+
+    <nav class="sidebar" :class="{ open: menuOpen }">
       <h1>🤖 RH WhatsApp</h1>
-      <a v-for="[key, label] in menu" :key="key" :class="{ active: vista === key }" @click="vista = key">{{ label }}</a>
+      <a v-for="[key, label] in menu" :key="key" :class="{ active: vista === key }" @click="selectVista(key)">{{ label }}</a>
       <a style="margin-top:20px;opacity:.8" @click="logout">🚪 Salir</a>
     </nav>
     <main class="main">
