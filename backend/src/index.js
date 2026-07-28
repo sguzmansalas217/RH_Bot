@@ -27,6 +27,9 @@ async function main() {
   const channel = createChannel();
   const router = crearRouter(channel);
   channel.onMessage((msg) => router.manejar(msg));
+  // Deja el canal disponible para las rutas del panel (p.ej. avisar al
+  // empleado por WhatsApp cuando se aprueba/rechaza una solicitud).
+  app.set('channel', channel);
 
   // Webhook para Cloud API (si se usa ese canal en el futuro)
   if (channel.name === 'cloud') {

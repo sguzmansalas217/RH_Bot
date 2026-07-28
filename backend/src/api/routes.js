@@ -5,6 +5,51 @@ import { crearObra } from '../services/geofence.js';
 import { resolver, pendientes } from '../services/leaves.js';
 import { calcularNomina } from '../services/payroll/index.js';
 import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
+import { logger } from '../config/logger.js';
+
+// Formatea una fecha YYYY-MM-DD a texto legible (ej. "5 de agosto de 2026").
+function fechaLegible(f) {
+  if (!f) return '';
+  const d = new Date(String(f).slice(0, 10) + 'T00:00:00');
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// Arma el mensaje de WhatsApp que se le envía al empleado al resolver su solicitud.
+function mensajeResolucion(tipo, estatus, row, observaciones) {
+  const aprobado = String(estatus).startsWith('aprob');
+  const icono = aprobado ? '✅' : '❌';
+  const palabra = aprobado ? 'APROBADA' : 'RECHAZADA';
+  let detalle = '';
+  if (tipo === 'permiso') {
+    const rango = row.fecha_fin && row.fecha_fin !== row.fecha_inicio
+      ? `del ${fechaLegible(row.fecha_inicio)} al ${fechaLegible(row.fecha_fin)}`
+      : `para el ${fechaLegible(row.fecha_inicio)}`;
+    detalle = `tu *permiso* ${rango}`;
+  } else if (tipo === 'vacacion') {
+    detalle = `tus *vacaciones* del ${fechaLegible(row.fecha_inicio)} al ${fechaLegible(row.fecha_fin)} (${row.dias} días)`;
+  } else if (tipo === 'incapacidad') {
+    detalle = `tu *incapacidad* desde el ${fechaLegible(row.fecha_inicio)}`;
+  } else {
+    detalle = 'tu solicitud';
+  }
+  let msg = `${icono} Hola, ${detalle} fue *${palabra}* por Recursos Humanos.`;
+  if (observaciones) msg += `\n\n📝 Observaciones: ${observaciones}`;
+  return msg;
+}
+
+// Envía la notificación al empleado sin bloquear la respuesta HTTP del panel.
+async function notificarEmpleado(req, tipo, estatus, row, observaciones) {
+  try {
+    const channel = req.app.get('channel');
+    if (!channel || !row?.empleado_id) return;
+    const empleado = await one(`SELECT whatsapp, nombre FROM empleados WHERE id=$1`, [row.empleado_id]);
+    if (!empleado?.whatsapp) return;
+    await channel.sendText(empleado.whatsapp, mensajeResolucion(tipo, estatus, row, observaciones));
+    logger.info({ empleado: empleado.nombre, tipo, estatus }, '📤 Empleado notificado de la resolución');
+  } catch (err) {
+    logger.error({ err }, 'No se pudo notificar al empleado la resolución');
+  }
+}
 
 export const api = Router();
 
@@ -135,6 +180,8 @@ api.post('/solicitudes/:tipo/:id/resolver', async (req, res) => {
   const { estatus, observaciones } = req.body;
   const row = await resolver(tipo, id, { estatus, adminId: req.user.id, observaciones });
   res.json(row);
+  // Avisa al empleado por WhatsApp (después de responder, no bloquea el panel)
+  notificarEmpleado(req, tipo, estatus, row, observaciones);
 });
 
 // ─── Nómina ───
