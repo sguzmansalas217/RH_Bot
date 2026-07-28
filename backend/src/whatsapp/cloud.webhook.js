@@ -24,8 +24,13 @@ export function registrarWebhook(app, channel) {
     try {
       const entry = req.body?.entry?.[0]?.changes?.[0]?.value;
       const msg = entry?.messages?.[0];
+      logger.info(
+        { tieneMensaje: !!msg, tieneEstado: !!entry?.statuses, campo: req.body?.entry?.[0]?.changes?.[0]?.field },
+        '📩 Webhook POST recibido de Meta'
+      );
       if (!msg) return;
       const from = msg.from;
+      logger.info({ from, tipo: msg.type }, '📩 Mensaje entrante por Cloud API');
 
       let normalized;
       if (msg.type === 'location') {
