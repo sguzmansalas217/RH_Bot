@@ -48,6 +48,10 @@ export function createBaileysChannel() {
       logger: logger.child({ mod: 'baileys' }),
       markOnlineOnConnect: false,
       browser: ['RH Bot', 'Chrome', '120.0.0'],
+      // Un bot NO necesita el historial de chats. Desactivarlo evita descargas
+      // pesadas (y errores 408/decrypt) que ahogan un servidor con poca RAM.
+      syncFullHistory: false,
+      shouldSyncHistoryMessage: () => false,
       agent,
       fetchAgent: agent,
     });
