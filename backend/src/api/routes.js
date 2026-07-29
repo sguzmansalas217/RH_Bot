@@ -95,7 +95,7 @@ api.get('/empleados', async (req, res) => {
        FROM empleados e
        LEFT JOIN puestos p ON p.id=e.puesto_id
        LEFT JOIN departamentos d ON d.id=e.departamento_id
-      WHERE e.empresa_id=$1 ORDER BY e.nombre`,
+      WHERE e.empresa_id=$1 AND e.activo=true ORDER BY e.nombre`,
     [emp(req)]
   );
   res.json(rows);
