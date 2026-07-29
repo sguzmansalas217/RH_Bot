@@ -60,13 +60,39 @@ api.use(requireAuth);
 const emp = (req) => req.user.empresa_id;
 
 // ─── Empleados ───
+// Sincroniza las obras asignadas a un empleado (tabla empleado_obras).
+// obraIds: array de IDs. Si no es un array, no toca las asignaciones.
+async function sincronizarObras(empleadoId, obraIds) {
+  if (!Array.isArray(obraIds)) return;
+  await query(`DELETE FROM empleado_obras WHERE empleado_id=$1`, [empleadoId]);
+  for (const oid of obraIds) {
+    if (oid) {
+      await query(
+        `INSERT INTO empleado_obras (empleado_id, obra_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+        [empleadoId, oid]
+      );
+    }
+  }
+}
+
+// Normaliza el cuerpo: acepta obra_ids (array, nuevo) o obra_id (único, viejo).
+function obrasDelBody(b) {
+  if (Array.isArray(b.obra_ids)) return b.obra_ids.filter(Boolean);
+  if (b.obra_id) return [b.obra_id];
+  return [];
+}
+
 api.get('/empleados', async (req, res) => {
   const { rows } = await query(
-    `SELECT e.*, p.nombre AS puesto, d.nombre AS departamento, o.nombre AS obra
+    `SELECT e.*, p.nombre AS puesto, d.nombre AS departamento,
+            COALESCE((SELECT string_agg(o.nombre, ', ' ORDER BY o.nombre)
+                        FROM empleado_obras eo JOIN obras o ON o.id=eo.obra_id
+                       WHERE eo.empleado_id=e.id), '') AS obra,
+            COALESCE((SELECT array_agg(eo.obra_id)
+                        FROM empleado_obras eo WHERE eo.empleado_id=e.id), '{}') AS obra_ids
        FROM empleados e
        LEFT JOIN puestos p ON p.id=e.puesto_id
        LEFT JOIN departamentos d ON d.id=e.departamento_id
-       LEFT JOIN obras o ON o.id=e.obra_id
       WHERE e.empresa_id=$1 ORDER BY e.nombre`,
     [emp(req)]
   );
@@ -75,6 +101,7 @@ api.get('/empleados', async (req, res) => {
 
 api.post('/empleados', async (req, res) => {
   const b = req.body;
+  const obras = obrasDelBody(b);
   const row = await one(
     `INSERT INTO empleados
        (empresa_id, numero_empleado, nombre, whatsapp, curp, rfc, nss,
@@ -83,14 +110,16 @@ api.post('/empleados', async (req, res) => {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15)
      RETURNING *`,
     [emp(req), b.numero_empleado, b.nombre, b.whatsapp, b.curp, b.rfc, b.nss,
-      b.departamento_id, b.puesto_id, b.obra_id, b.horario_id, b.salario_diario || 0,
+      b.departamento_id, b.puesto_id, obras[0] || null, b.horario_id, b.salario_diario || 0,
       b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0]
   );
+  await sincronizarObras(row.id, obras);
   res.status(201).json(row);
 });
 
 api.put('/empleados/:id', async (req, res) => {
   const b = req.body;
+  const obras = obrasDelBody(b);
   const row = await one(
     `UPDATE empleados SET
         nombre=COALESCE($2,nombre), whatsapp=COALESCE($3,whatsapp),
@@ -99,9 +128,10 @@ api.put('/empleados/:id', async (req, res) => {
         salario_diario_integrado=COALESCE($9,salario_diario_integrado),
         dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo)
       WHERE id=$1 AND empresa_id=$11 RETURNING *`,
-    [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, b.obra_id,
+    [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, obras[0] || null,
       b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req)]
   );
+  await sincronizarObras(row.id, obras);
   res.json(row);
 });
 

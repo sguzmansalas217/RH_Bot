@@ -195,7 +195,7 @@ export function crearRouter(channel) {
       await limpiarEstado(to);
       if (!r.ok) return responder(to, mensajeErrorAsistencia(r, 'entrada'));
       const hora = new Date(r.hora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-      let txt = `✅ *Entrada registrada* a las ${hora} en ${empleado.obra_nombre}.`;
+      let txt = `✅ *Entrada registrada* a las ${hora} en ${r.obra_nombre}.`;
       if (r.retardo_min > 0) txt += `\n⚠️ Retardo de ${r.retardo_min} min.`;
       return responder(to, txt);
     }

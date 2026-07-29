@@ -27,6 +27,27 @@ export async function validarGeocerca(obraId, lat, lon) {
   };
 }
 
+/**
+ * De las obras ASIGNADAS al empleado, elige la que corresponde a un punto GPS:
+ * prioriza una donde el punto caiga dentro del radio; si ninguna, la más cercana.
+ * @returns null si el empleado no tiene obras asignadas, o { id, nombre, distancia_m, dentro }.
+ */
+export async function obraEmpleadoEnPunto(empleadoId, lat, lon) {
+  const row = await one(
+    `SELECT o.id, o.nombre, o.radio_metros,
+            ST_Distance(o.ubicacion, ST_MakePoint($2,$3)::geography) AS distancia_m,
+            ST_DWithin(o.ubicacion, ST_MakePoint($2,$3)::geography, o.radio_metros) AS dentro
+       FROM empleado_obras eo
+       JOIN obras o ON o.id = eo.obra_id
+      WHERE eo.empleado_id = $1 AND o.activa = true
+      ORDER BY dentro DESC, distancia_m ASC
+      LIMIT 1`,
+    [empleadoId, lon, lat] // ST_MakePoint recibe (x=lon, y=lat)
+  );
+  if (!row) return null;
+  return { id: row.id, nombre: row.nombre, distancia_m: Math.round(row.distancia_m), dentro: row.dentro };
+}
+
 /** Devuelve la obra más cercana a una coordenada dentro de su propio radio (si existe). */
 export async function obraCercana(empresaId, lat, lon) {
   return one(

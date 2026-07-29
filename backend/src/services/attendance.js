@@ -1,5 +1,5 @@
 import { one, query } from '../db/pool.js';
-import { validarGeocerca } from './geofence.js';
+import { obraEmpleadoEnPunto } from './geofence.js';
 
 /** Config de la empresa (tolerancias, jornada). */
 function getEmpresa(empresaId) {
@@ -30,13 +30,14 @@ const hoyLocal = () => {
  * @returns { ok, motivo, distancia_m, retardo_min, asistencia }
  */
 export async function registrarEntrada(empleado, lat, lon) {
-  if (!empleado.obra_id) return { ok: false, motivo: 'sin_obra' };
-
-  const geo = await validarGeocerca(empleado.obra_id, lat, lon);
+  // Detecta en cuál de las obras asignadas está el empleado
+  const geo = await obraEmpleadoEnPunto(empleado.id, lat, lon);
+  if (!geo) return { ok: false, motivo: 'sin_obra' };
   if (!geo.dentro) {
     await crearIncidencia(empleado.id, 'fuera_geocerca', `Entrada fuera de geocerca (${geo.distancia_m} m)`);
     return { ok: false, motivo: 'fuera_geocerca', distancia_m: geo.distancia_m };
   }
+  const obraId = geo.id;
 
   const empresa = await getEmpresa(empleado.empresa_id);
   const ahora = new Date(); // hora OFICIAL del servidor
@@ -66,21 +67,20 @@ export async function registrarEntrada(empleado, lat, lon) {
        SET entrada = now(), ubicacion_entrada = ST_MakePoint($4,$5)::geography,
            distancia_entrada_m = $6, minutos_retardo = $7, estatus='abierta'
      RETURNING *`,
-    [empleado.id, empleado.obra_id, fecha, lon, lat, geo.distancia_m, retardo]
+    [empleado.id, obraId, fecha, lon, lat, geo.distancia_m, retardo]
   );
 
   if (retardo > 0) {
     await crearIncidencia(empleado.id, 'retardo', `Retardo de ${retardo} min`);
   }
 
-  return { ok: true, distancia_m: geo.distancia_m, retardo_min: retardo, asistencia, hora: ahora };
+  return { ok: true, distancia_m: geo.distancia_m, retardo_min: retardo, asistencia, hora: ahora, obra_nombre: geo.nombre };
 }
 
 /**
  * Registra SALIDA. Calcula horas trabajadas, extra y salida anticipada.
  */
 export async function registrarSalida(empleado, lat, lon) {
-  if (!empleado.obra_id) return { ok: false, motivo: 'sin_obra' };
   const fecha = hoyLocal();
 
   const asistencia = await one(`SELECT * FROM asistencias WHERE empleado_id=$1 AND fecha=$2`, [
@@ -90,7 +90,8 @@ export async function registrarSalida(empleado, lat, lon) {
   if (!asistencia?.entrada) return { ok: false, motivo: 'sin_entrada' };
   if (asistencia.salida) return { ok: false, motivo: 'ya_registro_salida', asistencia };
 
-  const geo = await validarGeocerca(empleado.obra_id, lat, lon);
+  const geo = await obraEmpleadoEnPunto(empleado.id, lat, lon);
+  if (!geo) return { ok: false, motivo: 'sin_obra' };
   if (!geo.dentro) {
     await crearIncidencia(empleado.id, 'fuera_geocerca', `Salida fuera de geocerca (${geo.distancia_m} m)`);
     return { ok: false, motivo: 'fuera_geocerca', distancia_m: geo.distancia_m };

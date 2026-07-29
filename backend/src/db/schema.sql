@@ -99,6 +99,23 @@ CREATE TABLE IF NOT EXISTS empleados (
 );
 CREATE INDEX IF NOT EXISTS idx_empleados_whatsapp ON empleados(whatsapp);
 
+-- ─── Obras asignadas a cada empleado (varias por empleado) ─────────────────
+-- Un empleado puede trabajar en más de una obra/ubicación. Esta tabla sustituye
+-- al antiguo empleados.obra_id (que se conserva por compatibilidad).
+CREATE TABLE IF NOT EXISTS empleado_obras (
+    empleado_id     INT NOT NULL REFERENCES empleados(id) ON DELETE CASCADE,
+    obra_id         INT NOT NULL REFERENCES obras(id) ON DELETE CASCADE,
+    PRIMARY KEY (empleado_id, obra_id)
+);
+CREATE INDEX IF NOT EXISTS idx_empleado_obras_empleado ON empleado_obras(empleado_id);
+
+-- Relleno inicial (una sola vez): copia la obra única existente a la tabla nueva.
+INSERT INTO empleado_obras (empleado_id, obra_id)
+SELECT id, obra_id FROM empleados
+ WHERE obra_id IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM empleado_obras)
+ON CONFLICT DO NOTHING;
+
 -- ─── Asistencias ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS asistencias (
     id                  SERIAL PRIMARY KEY,

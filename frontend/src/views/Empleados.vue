@@ -16,7 +16,7 @@ async function cargar() {
 }
 
 function nuevo() {
-  form.value = { salario_diario: 0, dias_vacaciones_saldo: 12 };
+  form.value = { salario_diario: 0, dias_vacaciones_saldo: 12, obra_ids: [] };
   showModal.value = true;
 }
 async function guardar() {
@@ -26,7 +26,8 @@ async function guardar() {
   await cargar();
 }
 function editar(e) {
-  form.value = { ...e };
+  // Copia el arreglo de obras para no mutar la fila de la tabla
+  form.value = { ...e, obra_ids: [...(e.obra_ids || [])] };
   showModal.value = true;
 }
 async function darBaja(e) {
@@ -77,11 +78,17 @@ onMounted(cargar);
         <div class="field"><label>Departamento</label>
           <select v-model="form.departamento_id"><option :value="null">—</option><option v-for="d in catalogos.departamentos" :key="d.id" :value="d.id">{{ d.nombre }}</option></select>
         </div>
-        <div class="field"><label>Obra asignada</label>
-          <select v-model="form.obra_id"><option :value="null">—</option><option v-for="o in catalogos.obras" :key="o.id" :value="o.id">{{ o.nombre }}</option></select>
-        </div>
         <div class="field"><label>Horario</label>
           <select v-model="form.horario_id"><option :value="null">—</option><option v-for="h in catalogos.horarios" :key="h.id" :value="h.id">{{ h.nombre }}</option></select>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Obras asignadas (puede elegir varias)</label>
+          <div class="obras-check">
+            <label v-for="o in catalogos.obras" :key="o.id" class="chk">
+              <input type="checkbox" :value="o.id" v-model="form.obra_ids" /> {{ o.nombre }}
+            </label>
+            <p v-if="!catalogos.obras.length" style="color:#667;margin:4px 0">Aún no hay obras. Crea alguna en “Obras / Geocercas”.</p>
+          </div>
         </div>
         <div class="field"><label>Salario diario</label><input type="number" v-model.number="form.salario_diario" /></div>
         <div class="field"><label>Días de vacaciones</label><input type="number" v-model.number="form.dias_vacaciones_saldo" /></div>
