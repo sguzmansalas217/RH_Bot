@@ -81,7 +81,7 @@ export async function consultarEstatus(empleadoId) {
     [empleadoId]
   );
   const vacacion = await one(
-    `SELECT estatus, fecha_inicio, fecha_fin FROM vacaciones WHERE empleado_id=$1 ORDER BY creado_en DESC LIMIT 1`,
+    `SELECT estatus, fecha_inicio, fecha_fin, dias FROM vacaciones WHERE empleado_id=$1 ORDER BY creado_en DESC LIMIT 1`,
     [empleadoId]
   );
   const incapacidad = await one(

@@ -128,7 +128,22 @@ export function crearRouter(channel) {
 
       case 'consultar_vacaciones': {
         const v = await consultarVacaciones(empleado);
-        return responder(to, `🏖️ Tienes *${v.saldo}* días de vacaciones disponibles.`);
+        let txt = `🏖️ Tienes *${v.saldo}* días de vacaciones disponibles.`;
+        const aprobadas = (v.historial || []).filter((h) => h.estatus === 'aprobada');
+        const pendientes = (v.historial || []).filter((h) => h.estatus === 'pendiente');
+        if (aprobadas.length) {
+          txt += `\n\n✅ *Autorizadas:*`;
+          for (const h of aprobadas) {
+            txt += `\n• ${fechaCorta(h.fecha_inicio)} al ${fechaCorta(h.fecha_fin)} (${h.dias} días)`;
+          }
+        }
+        if (pendientes.length) {
+          txt += `\n\n⏳ *Pendientes de autorizar:*`;
+          for (const h of pendientes) {
+            txt += `\n• ${fechaCorta(h.fecha_inicio)} al ${fechaCorta(h.fecha_fin)} (${h.dias} días)`;
+          }
+        }
+        return responder(to, txt);
       }
 
       case 'reportar_incapacidad': {
@@ -168,7 +183,7 @@ export function crearRouter(channel) {
         const e = await consultarEstatus(empleado.id);
         const partes = [];
         if (e.permiso) partes.push(`• Permiso (${fechaCorta(e.permiso.fecha_inicio)}): *${e.permiso.estatus}*`);
-        if (e.vacacion) partes.push(`• Vacaciones (${fechaCorta(e.vacacion.fecha_inicio)}): *${e.vacacion.estatus}*`);
+        if (e.vacacion) partes.push(`• Vacaciones (${fechaCorta(e.vacacion.fecha_inicio)} al ${fechaCorta(e.vacacion.fecha_fin)}, ${e.vacacion.dias} días): *${e.vacacion.estatus}*`);
         if (e.incapacidad) partes.push(`• Incapacidad: *${e.incapacidad.estatus}*`);
         return responder(to, partes.length ? partes.join('\n') : 'No tienes solicitudes recientes.');
       }
