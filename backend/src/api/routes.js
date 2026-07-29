@@ -7,10 +7,12 @@ import { calcularNomina } from '../services/payroll/index.js';
 import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
 import { logger } from '../config/logger.js';
 
-// Formatea una fecha YYYY-MM-DD a texto legible (ej. "5 de agosto de 2026").
+// Formatea una fecha a texto legible (ej. "5 de agosto de 2026").
+// Acepta objetos Date (como los devuelve node-postgres) o cadenas "YYYY-MM-DD".
 function fechaLegible(f) {
   if (!f) return '';
-  const d = new Date(String(f).slice(0, 10) + 'T00:00:00');
+  const d = f instanceof Date ? f : new Date(String(f).slice(0, 10) + 'T00:00:00');
+  if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
