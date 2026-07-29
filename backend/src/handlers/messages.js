@@ -4,7 +4,7 @@ import { query } from '../db/pool.js';
 import { analizarIntencion } from '../ai/intent.js';
 import { buscarPorWhatsapp } from '../services/employees.js';
 import { getEstado, setEstado, limpiarEstado } from '../services/state.js';
-import { registrarEntrada, registrarSalida, horasExtraSemana } from '../services/attendance.js';
+import { registrarEntrada, registrarSalida, horasExtraSemana, resumenTrabajo } from '../services/attendance.js';
 import {
   solicitarPermiso,
   solicitarVacaciones,
@@ -28,6 +28,7 @@ const MENU = `👋 Soy tu asistente de RH. Puedes escribirme naturalmente, por e
 • *Tengo incapacidad*
 • *¿Cuánto voy a cobrar esta semana?*
 • *¿Cuántas horas extra llevo?*
+• *¿Cuántas horas trabajé del 1 al 15?*
 • *¿Ya aprobaron mi permiso?*`;
 
 async function logMensaje(whatsapp, empleadoId, direccion, texto, intencion, entidades, tipo) {
@@ -80,7 +81,31 @@ export function crearRouter(channel) {
     // ─── TEXTO → IA ───
     const ia = await analizarIntencion(msg.text, { hoy: new Date().toISOString().slice(0, 10) });
     await logMensaje(from, empleado.id, 'entrante', msg.text, ia.intencion, ia.entidades, 'texto');
+
+    // Si estábamos esperando un rango de fechas para el reporte de horas
+    if (estado?.esperando === 'rango_horas') {
+      await limpiarEstado(from);
+      return responderHorasTrabajadas(empleado, ia.entidades || {}, responder);
+    }
+
     return dispatch(empleado, ia, responder);
+  }
+
+  // Reporte de horas/días trabajados en un rango de fechas
+  async function responderHorasTrabajadas(empleado, ent, responder) {
+    const to = empleado.whatsapp;
+    if (!ent.fecha_inicio || !ent.fecha_fin) {
+      return responder(to, '❌ No entendí las fechas. Escribe algo como: *"del 1 al 15 de julio"*.');
+    }
+    const r = await resumenTrabajo(empleado.id, ent.fecha_inicio, ent.fecha_fin);
+    return responder(
+      to,
+      `📊 *Del ${fechaCorta(ent.fecha_inicio)} al ${fechaCorta(ent.fecha_fin)}:*\n` +
+        `• Días trabajados: *${r.dias}*\n` +
+        `• Horas normales: *${r.horas_normales}*\n` +
+        `• Horas extra: *${r.horas_extra}*\n` +
+        `• Total de horas: *${r.horas_totales}*`
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────
@@ -177,6 +202,18 @@ export function crearRouter(channel) {
       case 'consultar_horas_extra': {
         const he = await horasExtraSemana(empleado.id);
         return responder(to, `⏱️ Llevas *${he}* horas extra esta semana.`);
+      }
+
+      case 'consultar_horas_trabajadas': {
+        // Si ya dieron el rango, responde directo; si no, lo pedimos
+        if (ent.fecha_inicio && ent.fecha_fin) {
+          return responderHorasTrabajadas(empleado, ent, responder);
+        }
+        await setEstado(to, 'rango_horas');
+        return responder(
+          to,
+          '📅 Con gusto. ¿De qué fecha a qué fecha quieres el reporte de horas? Ej: *"del 1 al 15 de julio"*.'
+        );
       }
 
       case 'consultar_estatus_solicitud': {

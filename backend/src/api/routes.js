@@ -166,6 +166,97 @@ api.post('/horarios', async (req, res) => {
     [emp(req), b.nombre, b.hora_entrada, b.hora_salida, b.dias_laborales || [1,2,3,4,5,6], b.minutos_comida || 60]
   ));
 });
+api.put('/horarios/:id', async (req, res) => {
+  const b = req.body;
+  res.json(await one(
+    `UPDATE horarios SET nombre=$2, hora_entrada=$3, hora_salida=$4, dias_laborales=$5, minutos_comida=$6
+      WHERE id=$1 AND empresa_id=$7 RETURNING *`,
+    [req.params.id, b.nombre, b.hora_entrada, b.hora_salida, b.dias_laborales || [1,2,3,4,5,6], b.minutos_comida || 60, emp(req)]
+  ));
+});
+api.delete('/horarios/:id', async (req, res) => {
+  await query(`UPDATE empleados SET horario_id=NULL WHERE horario_id=$1`, [req.params.id]);
+  await query(`DELETE FROM horarios WHERE id=$1 AND empresa_id=$2`, [req.params.id, emp(req)]);
+  res.json({ ok: true });
+});
+
+// ─── Conceptos de nómina (bonos / deducciones) ───
+// Claves especiales que el cálculo de nómina reconoce:
+//   BONO_PUNT  → solo se paga si NO hubo retardos en el periodo
+//   BONO_ASIST → solo se paga si NO hubo faltas en el periodo
+api.get('/conceptos', async (req, res) => {
+  const { rows } = await query(`SELECT * FROM conceptos_nomina WHERE empresa_id=$1 ORDER BY nombre`, [emp(req)]);
+  res.json(rows);
+});
+api.post('/conceptos', async (req, res) => {
+  const b = req.body;
+  res.status(201).json(await one(
+    `INSERT INTO conceptos_nomina (empresa_id, clave, nombre, naturaleza, gravable)
+     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [emp(req), b.clave, b.nombre, b.naturaleza || 'percepcion', b.gravable !== false]
+  ));
+});
+api.put('/conceptos/:id', async (req, res) => {
+  const b = req.body;
+  res.json(await one(
+    `UPDATE conceptos_nomina SET clave=$2, nombre=$3, naturaleza=$4, gravable=$5
+      WHERE id=$1 AND empresa_id=$6 RETURNING *`,
+    [req.params.id, b.clave, b.nombre, b.naturaleza || 'percepcion', b.gravable !== false, emp(req)]
+  ));
+});
+api.delete('/conceptos/:id', async (req, res) => {
+  await query(`DELETE FROM empleado_conceptos WHERE concepto_id=$1`, [req.params.id]);
+  await query(`DELETE FROM conceptos_nomina WHERE id=$1 AND empresa_id=$2`, [req.params.id, emp(req)]);
+  res.json({ ok: true });
+});
+
+// ─── Asignaciones de conceptos a empleados (bono/deducción por empleado) ───
+api.get('/asignaciones', async (req, res) => {
+  const { rows } = await query(
+    `SELECT ec.id, ec.empleado_id, ec.concepto_id, ec.monto, ec.porcentaje, ec.activo,
+            e.nombre AS empleado, c.nombre AS concepto, c.clave, c.naturaleza
+       FROM empleado_conceptos ec
+       JOIN empleados e ON e.id=ec.empleado_id
+       JOIN conceptos_nomina c ON c.id=ec.concepto_id
+      WHERE e.empresa_id=$1 ORDER BY e.nombre, c.nombre`,
+    [emp(req)]
+  );
+  res.json(rows);
+});
+api.post('/asignaciones', async (req, res) => {
+  const b = req.body;
+  res.status(201).json(await one(
+    `INSERT INTO empleado_conceptos (empleado_id, concepto_id, monto, porcentaje, activo)
+     VALUES ($1,$2,$3,$4,true) RETURNING *`,
+    [b.empleado_id, b.concepto_id, b.monto || null, b.porcentaje || null]
+  ));
+});
+api.delete('/asignaciones/:id', async (req, res) => {
+  await query(`DELETE FROM empleado_conceptos WHERE id=$1`, [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ─── Configuración de la empresa ───
+api.get('/empresa', async (req, res) => {
+  res.json(await one(`SELECT * FROM empresas WHERE id=$1`, [emp(req)]));
+});
+api.put('/empresa', async (req, res) => {
+  const b = req.body;
+  res.json(await one(
+    `UPDATE empresas SET
+        nombre=COALESCE($2,nombre),
+        horas_jornada=COALESCE($3,horas_jornada),
+        tolerancia_retardo_min=COALESCE($4,tolerancia_retardo_min),
+        factor_hora_extra_doble=COALESCE($5,factor_hora_extra_doble),
+        factor_hora_extra_triple=COALESCE($6,factor_hora_extra_triple),
+        prima_dominical_pct=COALESCE($7,prima_dominical_pct),
+        dias_aguinaldo=COALESCE($8,dias_aguinaldo),
+        prima_vacacional_pct=COALESCE($9,prima_vacacional_pct)
+      WHERE id=$1 RETURNING *`,
+    [emp(req), b.nombre, b.horas_jornada, b.tolerancia_retardo_min, b.factor_hora_extra_doble,
+      b.factor_hora_extra_triple, b.prima_dominical_pct, b.dias_aguinaldo, b.prima_vacacional_pct]
+  ));
+});
 
 // ─── Obras / geocercas ───
 api.get('/obras', async (req, res) => {

@@ -7,6 +7,9 @@ import Asistencias from './views/Asistencias.vue';
 import Aprobaciones from './views/Aprobaciones.vue';
 import Nomina from './views/Nomina.vue';
 import Incidencias from './views/Incidencias.vue';
+import Horarios from './views/Horarios.vue';
+import Conceptos from './views/Conceptos.vue';
+import Configuracion from './views/Configuracion.vue';
 
 const logged = ref(!!getToken());
 const email = ref('admin@demo.com');
@@ -18,18 +21,24 @@ const menuOpen = ref(false); // menú lateral abierto en móvil
 const vistas = {
   empleados: Empleados,
   obras: Obras,
+  horarios: Horarios,
   asistencias: Asistencias,
   aprobaciones: Aprobaciones,
   nomina: Nomina,
+  conceptos: Conceptos,
   incidencias: Incidencias,
+  configuracion: Configuracion,
 };
 const menu = [
   ['empleados', '👥 Empleados'],
   ['obras', '📍 Obras / Geocercas'],
+  ['horarios', '🕗 Horarios'],
   ['asistencias', '🕐 Asistencias'],
   ['aprobaciones', '✅ Aprobaciones'],
   ['nomina', '💰 Nómina'],
+  ['conceptos', '🎁 Bonos / Conceptos'],
   ['incidencias', '⚠️ Incidencias'],
+  ['configuracion', '⚙️ Configuración'],
 ];
 
 async function login() {

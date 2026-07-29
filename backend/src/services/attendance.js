@@ -149,6 +149,29 @@ export function crearIncidencia(empleadoId, tipo, descripcion) {
   );
 }
 
+/**
+ * Resumen de trabajo de un empleado en un rango de fechas:
+ * días trabajados, horas normales y horas extra.
+ */
+export async function resumenTrabajo(empleadoId, inicio, fin) {
+  const r = await one(
+    `SELECT COUNT(*) FILTER (WHERE entrada IS NOT NULL AND salida IS NOT NULL) AS dias,
+            COALESCE(SUM(horas_trabajadas),0) AS horas,
+            COALESCE(SUM(horas_extra),0) AS extra
+       FROM asistencias
+      WHERE empleado_id=$1 AND fecha BETWEEN $2 AND $3`,
+    [empleadoId, inicio, fin]
+  );
+  const horas = Number(r.horas);
+  const extra = Number(r.extra);
+  return {
+    dias: Number(r.dias),
+    horas_totales: Math.round(horas * 100) / 100,
+    horas_extra: Math.round(extra * 100) / 100,
+    horas_normales: Math.max(0, Math.round((horas - extra) * 100) / 100),
+  };
+}
+
 /** Suma de horas extra de la semana en curso (para consultas del empleado). */
 export async function horasExtraSemana(empleadoId) {
   const r = await one(

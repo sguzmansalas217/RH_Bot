@@ -15,6 +15,7 @@ export const INTENCIONES = [
   'consultar_incapacidad', // ¿cómo va mi incapacidad?
   'consultar_nomina', // ¿cuánto voy a cobrar?
   'consultar_horas_extra', // ¿cuántas horas extra llevo?
+  'consultar_horas_trabajadas', // ¿cuántas horas/días trabajé (en un rango)?
   'consultar_estatus_solicitud', // ¿ya aprobaron mi permiso?
   'saludo', // hola / buenos días
   'ayuda', // ¿qué puedo hacer?
@@ -67,6 +68,7 @@ Ejemplos de intención:
 - "Tengo incapacidad", "me dieron 3 días de incapacidad" → reportar_incapacidad
 - "¿Cuánto voy a cobrar esta semana?" → consultar_nomina
 - "¿Cuántas horas extra llevo?" → consultar_horas_extra
+- "¿Cuántas horas trabajé?", "¿cuántos días trabajé del 1 al 15?" → consultar_horas_trabajadas (extrae fecha_inicio y fecha_fin si el usuario da un rango)
 - "¿Ya aprobaron mi permiso?" → consultar_estatus_solicitud
 Usa SIEMPRE la herramienta registrar_intencion.`;
 }
@@ -116,6 +118,8 @@ function fallbackClasificador(texto) {
   else if (has('vacaciones')) intencion = 'solicitar_vacaciones';
   else if (has('incapacidad')) intencion = 'reportar_incapacidad';
   else if (has('cobrar', 'nomina', 'nómina', 'sueldo', 'pago')) intencion = 'consultar_nomina';
+  else if (has('cuantas horas', 'cuántas horas', 'cuantos dias', 'cuántos días', 'horas trabaje', 'horas trabajadas', 'dias trabaje', 'días trabajados'))
+    intencion = 'consultar_horas_trabajadas';
   else if (has('horas extra', 'tiempo extra')) intencion = 'consultar_horas_extra';
   else if (has('aprobaron', 'estatus', 'como va', 'cómo va')) intencion = 'consultar_estatus_solicitud';
   else if (has('hola', 'buenos', 'buenas', 'que tal')) intencion = 'saludo';
