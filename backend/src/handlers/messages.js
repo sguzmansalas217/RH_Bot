@@ -84,6 +84,13 @@ export function crearRouter(channel) {
     const ia = await analizarIntencion(msg.text, { hoy: new Date().toISOString().slice(0, 10) });
     await logMensaje(from, empleado.id, 'entrante', msg.text, ia.intencion, ia.entidades, 'texto');
 
+    // Si estábamos esperando el motivo de un permiso → el texto ES el motivo
+    if (estado?.esperando === 'motivo_permiso') {
+      const ctx = estado.contexto || {};
+      await limpiarEstado(from);
+      return finalizarPermiso(empleado, ctx, (msg.text || '').trim(), responder);
+    }
+
     // Si estábamos esperando un rango de fechas para el reporte de horas
     if (estado?.esperando === 'rango_horas') {
       await limpiarEstado(from);
@@ -91,6 +98,21 @@ export function crearRouter(channel) {
     }
 
     return dispatch(empleado, ia, responder);
+  }
+
+  // Crea el permiso con su motivo y avisa a los admins de la empresa.
+  async function finalizarPermiso(empleado, ent, motivo, responder) {
+    const to = empleado.whatsapp;
+    const p = await solicitarPermiso(empleado, { ...ent, motivo: motivo || null });
+    const f = fechaCorta(p.fecha_inicio);
+    await notificarAdmins(
+      empleado.empresa_id,
+      `🔔 *Nuevo permiso* #${p.id}\n${empleado.nombre}\nMotivo: ${p.motivo || '—'}\nFecha: ${f}\nResponde: *aprobar permiso ${p.id}* o *rechazar permiso ${p.id}*`
+    );
+    return responder(
+      to,
+      `✅ Registré tu solicitud de permiso para *${f}*.\n📝 Motivo: _${p.motivo || '—'}_\nQueda *pendiente* de autorización. Te aviso cuando haya respuesta.`
+    );
   }
 
   // Reporte de horas/días trabajados en un rango de fechas
@@ -125,16 +147,20 @@ export function crearRouter(channel) {
         return channel.requestLocation(to, '📍 Registrando tu *salida*.');
 
       case 'solicitar_permiso': {
-        const p = await solicitarPermiso(empleado, ent);
-        const f = fechaCorta(p.fecha_inicio);
-        await notificarAdmins(
-          empleado.empresa_id,
-          `🔔 *Nuevo permiso* #${p.id}\n${empleado.nombre}\nMotivo: ${p.motivo || '—'}\nFecha: ${f}\nResponde: *aprobar permiso ${p.id}* o *rechazar permiso ${p.id}*`
-        );
-        return responder(
-          to,
-          `✅ Registré tu solicitud de permiso para *${f}*. Queda *pendiente* de autorización. Te aviso cuando haya respuesta.`
-        );
+        // Si no dijo el motivo, se lo preguntamos y esperamos su respuesta.
+        if (!ent.motivo || !String(ent.motivo).trim()) {
+          await setEstado(to, 'motivo_permiso', {
+            fecha_inicio: ent.fecha_inicio || null,
+            fecha_fin: ent.fecha_fin || null,
+            horas: ent.horas || null,
+            tipo: ent.tipo || null,
+          });
+          return responder(
+            to,
+            '📝 ¿Cuál es el *motivo* de tu permiso? (Ej: cita médica, asunto personal, trámite…)'
+          );
+        }
+        return finalizarPermiso(empleado, ent, ent.motivo, responder);
       }
 
       case 'solicitar_vacaciones': {
