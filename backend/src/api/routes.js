@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, requireAuth, requireSuperadmin } from './auth.js';
-import { crearEmpresaConAdmin, listarEmpresas } from '../services/tenants.js';
+import { crearEmpresaConAdmin, listarEmpresas, eliminarEmpresa } from '../services/tenants.js';
 import { one, query } from '../db/pool.js';
 import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
 import { resolver, pendientes, ausencias } from '../services/leaves.js';
@@ -72,6 +72,14 @@ api.post('/admin/empresas', requireSuperadmin, async (req, res) => {
     res.status(201).json(empresa);
   } catch (err) {
     res.status(400).json({ error: err.message || 'No se pudo crear la empresa' });
+  }
+});
+// Borrado DEFINITIVO de una empresa y todos sus datos.
+api.delete('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
+  try {
+    res.json(await eliminarEmpresa(req.params.id));
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo eliminar la empresa' });
   }
 });
 

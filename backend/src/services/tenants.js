@@ -91,6 +91,73 @@ export async function crearEmpresaConAdmin({
   }
 }
 
+/**
+ * Elimina DEFINITIVAMENTE una empresa y TODOS sus datos (empleados, obras,
+ * asistencias, solicitudes, nómina, mensajes, admins, catálogos). Borrado
+ * explícito hijo→padre en una transacción, sin depender de ON DELETE CASCADE.
+ */
+export async function eliminarEmpresa(empresaId) {
+  const id = Number(empresaId);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('Empresa inválida');
+
+  const client = await pool.connect();
+  const empSub = `(SELECT id FROM empleados WHERE empresa_id=$1)`;
+  try {
+    await client.query('BEGIN');
+
+    // ── Nómina: detalle → recibos → periodos ──
+    await client.query(
+      `DELETE FROM recibo_detalle WHERE recibo_id IN (
+         SELECT r.id FROM recibos_nomina r
+         JOIN periodos_nomina p ON p.id = r.periodo_id
+        WHERE p.empresa_id = $1)`,
+      [id]
+    );
+    await client.query(
+      `DELETE FROM recibos_nomina WHERE periodo_id IN
+        (SELECT id FROM periodos_nomina WHERE empresa_id = $1)`,
+      [id]
+    );
+    await client.query(`DELETE FROM periodos_nomina WHERE empresa_id = $1`, [id]);
+
+    // ── Datos ligados a los empleados de la empresa ──
+    await client.query(`DELETE FROM empleado_conceptos WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM prestamos          WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM vacaciones         WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM permisos           WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM incapacidades      WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM incidencias        WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM asistencias        WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM empleado_obras     WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(`DELETE FROM mensajes_wa        WHERE empleado_id IN ${empSub}`, [id]);
+    await client.query(
+      `DELETE FROM conversacion_estado WHERE whatsapp IN
+        (SELECT whatsapp FROM empleados WHERE empresa_id = $1)`,
+      [id]
+    );
+
+    // ── Empleados y catálogos propios de la empresa ──
+    await client.query(`DELETE FROM empleados        WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM conceptos_nomina WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM obras            WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM horarios         WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM puestos          WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM departamentos    WHERE empresa_id = $1`, [id]);
+    await client.query(`DELETE FROM usuarios_admin   WHERE empresa_id = $1`, [id]);
+
+    const r = await client.query(`DELETE FROM empresas WHERE id = $1 RETURNING id`, [id]);
+    if (!r.rowCount) throw new Error('La empresa no existe');
+
+    await client.query('COMMIT');
+    return { id };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 /** Lista todas las empresas con conteos (para la pantalla de súper-admin). */
 export async function listarEmpresas() {
   const { rows } = await pool.query(

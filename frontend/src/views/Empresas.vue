@@ -24,6 +24,28 @@ async function crear() {
   }
 }
 
+async function eliminar(e) {
+  error.value = ''; ok.value = '';
+  const escrito = window.prompt(
+    `⚠️ Vas a ELIMINAR la empresa "${e.nombre}" y TODOS sus datos ` +
+      `(empleados, obras, asistencias, solicitudes, nómina, mensajes). ` +
+      `Esta acción NO se puede deshacer.\n\n` +
+      `Para confirmar, escribe el nombre exacto de la empresa:`
+  );
+  if (escrito === null) return; // canceló
+  if (escrito.trim() !== e.nombre) {
+    error.value = 'El nombre no coincide. No se eliminó nada.';
+    return;
+  }
+  try {
+    await api.del(`/admin/empresas/${e.id}`);
+    ok.value = `🗑️ Empresa "${e.nombre}" eliminada por completo.`;
+    await cargar();
+  } catch (err) {
+    error.value = err.message || 'No se pudo eliminar la empresa.';
+  }
+}
+
 onMounted(cargar);
 </script>
 
@@ -55,7 +77,7 @@ onMounted(cargar);
   </div>
 
   <table>
-    <thead><tr><th>#</th><th>Empresa</th><th>RFC</th><th>Empleados</th><th>Admins</th></tr></thead>
+    <thead><tr><th>#</th><th>Empresa</th><th>RFC</th><th>Empleados</th><th>Admins</th><th>Acciones</th></tr></thead>
     <tbody>
       <tr v-for="e in empresas" :key="e.id">
         <td>{{ e.id }}</td>
@@ -63,6 +85,7 @@ onMounted(cargar);
         <td>{{ e.rfc || '—' }}</td>
         <td>{{ e.empleados }}</td>
         <td>{{ e.admins }}</td>
+        <td><button class="danger" @click="eliminar(e)">🗑️ Eliminar</button></td>
       </tr>
     </tbody>
   </table>
