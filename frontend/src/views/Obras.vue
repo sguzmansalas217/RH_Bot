@@ -8,6 +8,7 @@ const form = ref(vacia());
 const editId = ref(null); // null = creando; con id = editando
 const direccion = ref('');
 const buscando = ref(false);
+const resultados = ref([]); // opciones que devuelve el buscador para elegir
 
 // Objetos de Leaflet (no reactivos)
 let map, marker, circle;
@@ -44,21 +45,35 @@ watch(() => form.value.radio_metros, () => {
   if (marker) dibujarCirculo(marker.getLatLng().lat, marker.getLatLng().lng);
 });
 
-// Buscar por dirección (geocodificación gratuita de OpenStreetMap / Nominatim)
+// Buscar por dirección (geocodificación gratuita de OpenStreetMap / Nominatim).
+// Prefiere la zona visible del mapa y devuelve varias opciones para elegir.
 async function buscarDireccion() {
   if (!direccion.value.trim()) return;
   buscando.value = true;
+  resultados.value = [];
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=mx&limit=1&q=${encodeURIComponent(direccion.value)}`;
+    // Sesga los resultados hacia lo que se ve en el mapa (viewbox), sin restringir del todo
+    const b = map.getBounds();
+    const viewbox = `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1`
+      + `&countrycodes=mx&limit=6&viewbox=${viewbox}&bounded=0`
+      + `&q=${encodeURIComponent(direccion.value)}`;
     const r = await fetch(url, { headers: { 'Accept-Language': 'es' } });
     const data = await r.json();
-    if (!data.length) return alert('No encontré esa dirección. Intenta con más datos (calle, ciudad).');
-    ponerPunto(parseFloat(data[0].lat), parseFloat(data[0].lon));
+    if (!data.length) return alert('No encontré esa dirección. Agrega ciudad y estado, ej: "Av. Convención 100, Aguascalientes".');
+    resultados.value = data;
+    // Si solo hay una opción clara, colócala directo
+    if (data.length === 1) elegirResultado(data[0]);
   } catch {
     alert('No se pudo buscar la dirección. Revisa tu conexión.');
   } finally {
     buscando.value = false;
   }
+}
+
+function elegirResultado(res) {
+  ponerPunto(parseFloat(res.lat), parseFloat(res.lon));
+  resultados.value = [];
 }
 
 function editar(o) {
@@ -72,6 +87,7 @@ function cancelar() {
   editId.value = null;
   form.value = vacia();
   direccion.value = '';
+  resultados.value = [];
   if (marker) { map.removeLayer(marker); marker = null; }
   if (circle) { map.removeLayer(circle); circle = null; }
   map.setView(CENTRO_DEFAULT, 12);
@@ -134,6 +150,9 @@ onMounted(async () => {
           {{ buscando ? 'Buscando…' : '🔍 Buscar' }}
         </button>
       </div>
+      <ul v-if="resultados.length > 1" class="resultados">
+        <li v-for="(r, i) in resultados" :key="i" @click="elegirResultado(r)">📍 {{ r.display_name }}</li>
+      </ul>
     </div>
 
     <p style="color:var(--muted);font-size:13px;margin:4px 0">
@@ -171,4 +190,8 @@ onMounted(async () => {
 <style scoped>
 .mapa { height: 360px; border-radius: 8px; border: 1px solid var(--border); z-index: 0; }
 @media (max-width: 820px) { .mapa { height: 300px; } }
+.resultados { list-style: none; margin: 6px 0 0; padding: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.resultados li { padding: 8px 10px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+.resultados li:last-child { border-bottom: none; }
+.resultados li:hover { background: #f0fdf4; }
 </style>
