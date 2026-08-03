@@ -1,10 +1,60 @@
 import { one, query } from '../db/pool.js';
 
-// Días naturales inclusive entre dos fechas YYYY-MM-DD
-function diasEntre(inicio, fin) {
-  const a = new Date(inicio + 'T00:00:00');
-  const b = new Date((fin || inicio) + 'T00:00:00');
-  return Math.floor((b - a) / 86_400_000) + 1;
+// Días laborables del empleado (getDay: 0=Dom..6=Sáb). Default: Lun-Sáb.
+function laborablesDe(empleado) {
+  const arr = empleado?.dias_laborales;
+  return Array.isArray(arr) && arr.length ? arr.map(Number) : [1, 2, 3, 4, 5, 6];
+}
+
+// Cuenta cuántos días laborables (según su horario) hay en el rango [inicio,fin].
+function contarLaborables(empleado, inicio, fin) {
+  const lab = laborablesDe(empleado);
+  const d = new Date(inicio + 'T00:00:00');
+  const end = new Date((fin || inicio) + 'T00:00:00');
+  let n = 0;
+  while (d <= end) {
+    if (lab.includes(d.getDay())) n++;
+    d.setDate(d.getDate() + 1);
+  }
+  return n;
+}
+
+// ¿El rango incluye al menos un día laborable para el empleado?
+function tieneDiaLaborable(empleado, inicio, fin) {
+  return contarLaborables(empleado, inicio, fin) > 0;
+}
+
+// ¿El propio empleado YA tiene permiso/vacación (pendiente o aprobada) que se
+// cruza con estas fechas? Devuelve la solicitud existente o null.
+function traslapePropio(empleadoId, inicio, fin) {
+  return one(
+    `SELECT tipo, fecha_inicio, fecha_fin FROM (
+        SELECT 'permiso' AS tipo, fecha_inicio, fecha_fin FROM permisos
+          WHERE empleado_id=$1 AND estatus IN ('pendiente','aprobado')
+        UNION ALL
+        SELECT 'vacaciones' AS tipo, fecha_inicio, fecha_fin FROM vacaciones
+          WHERE empleado_id=$1 AND estatus IN ('pendiente','aprobada')
+     ) s
+     WHERE s.fecha_inicio <= $3 AND COALESCE(s.fecha_fin, s.fecha_inicio) >= $2
+     ORDER BY s.fecha_inicio LIMIT 1`,
+    [empleadoId, inicio, fin || inicio]
+  );
+}
+
+/**
+ * Valida las fechas de una solicitud DEL PROPIO empleado antes de registrarla:
+ *  - 'no_laborable' → todas las fechas son días no laborables para él.
+ *  - 'duplicado'    → ya tiene permiso/vacación capturado que se cruza.
+ * Devuelve { ok:true } o { ok:false, error, existente? }.
+ */
+export async function validarFechasPropias(empleado, fecha_inicio, fecha_fin) {
+  const inicio = fecha_inicio || new Date().toISOString().slice(0, 10);
+  if (!tieneDiaLaborable(empleado, inicio, fecha_fin)) {
+    return { ok: false, error: 'no_laborable' };
+  }
+  const existente = await traslapePropio(empleado.id, inicio, fecha_fin);
+  if (existente) return { ok: false, error: 'duplicado', existente };
+  return { ok: true };
 }
 
 // ─── PERMISOS ─────────────────────────────────────────────────────────────
@@ -25,7 +75,9 @@ export function solicitarPermiso(empleado, { fecha_inicio, fecha_fin, horas, mot
 
 // ─── VACACIONES ───────────────────────────────────────────────────────────
 export async function solicitarVacaciones(empleado, { fecha_inicio, fecha_fin }) {
-  const dias = diasEntre(fecha_inicio, fecha_fin);
+  // Solo cuentan los días laborables del empleado (los configurados en su horario).
+  const dias = contarLaborables(empleado, fecha_inicio, fecha_fin);
+  if (dias < 1) return { ok: false, motivo: 'no_laborable' };
   if (dias > Number(empleado.dias_vacaciones_saldo)) {
     return { ok: false, motivo: 'saldo_insuficiente', dias, saldo: empleado.dias_vacaciones_saldo };
   }

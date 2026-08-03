@@ -12,6 +12,7 @@ import {
   incapacidadPendienteComprobante,
   adjuntarComprobante,
   consultarEstatus,
+  validarFechasPropias,
 } from '../services/leaves.js';
 import { estimarSemana } from '../services/payroll/index.js';
 import { one } from '../db/pool.js';
@@ -147,6 +148,9 @@ export function crearRouter(channel) {
         return channel.requestLocation(to, '📍 Registrando tu *salida*.');
 
       case 'solicitar_permiso': {
+        // Valida fechas propias (día laborable + no duplicado) antes de nada.
+        const val = await validarFechasPropias(empleado, ent.fecha_inicio, ent.fecha_fin);
+        if (!val.ok) return responder(to, mensajeValidacion(val, 'permiso'));
         // Si no dijo el motivo, se lo preguntamos y esperamos su respuesta.
         if (!ent.motivo || !String(ent.motivo).trim()) {
           await setEstado(to, 'motivo_permiso', {
@@ -167,11 +171,17 @@ export function crearRouter(channel) {
         if (!ent.fecha_inicio) {
           return responder(to, '📅 ¿Del qué día al qué día quieres tus vacaciones? Ej: "del 5 al 10 de agosto".');
         }
+        // Valida fechas propias (día laborable + no duplicado) antes de registrar.
+        const val = await validarFechasPropias(empleado, ent.fecha_inicio, ent.fecha_fin);
+        if (!val.ok) return responder(to, mensajeValidacion(val, 'vacaciones'));
         const r = await solicitarVacaciones(empleado, ent);
         if (!r.ok) {
+          if (r.motivo === 'no_laborable') {
+            return responder(to, mensajeValidacion({ error: 'no_laborable' }, 'vacaciones'));
+          }
           return responder(
             to,
-            `⚠️ No tienes saldo suficiente. Solicitaste *${r.dias}* días y tu saldo es *${r.saldo}*.`
+            `⚠️ No tienes saldo suficiente. Solicitaste *${r.dias}* día(s) laborable(s) y tu saldo es *${r.saldo}*.`
           );
         }
         await notificarAdmins(
@@ -343,6 +353,24 @@ export function crearRouter(channel) {
 function fechaCorta(f) {
   if (!f) return '—';
   return new Date(f).toISOString().slice(0, 10);
+}
+
+// Mensaje al empleado cuando sus fechas no son válidas (día no laborable o duplicado).
+function mensajeValidacion(val, tipo) {
+  const que = tipo === 'vacaciones' ? 'vacaciones' : 'un permiso';
+  if (val.error === 'no_laborable') {
+    return `🚫 Esas fechas caen en días *no laborables* según tu horario, así que no puedes registrar ${que} en ellas. Elige una fecha laborable.`;
+  }
+  if (val.error === 'duplicado') {
+    const e = val.existente || {};
+    const distintos = e.fecha_fin && String(e.fecha_fin).slice(0, 10) !== String(e.fecha_inicio).slice(0, 10);
+    const rango = distintos
+      ? `del ${fechaCorta(e.fecha_inicio)} al ${fechaCorta(e.fecha_fin)}`
+      : `para el ${fechaCorta(e.fecha_inicio)}`;
+    const qExist = e.tipo === 'vacaciones' ? 'vacaciones' : 'un permiso';
+    return `⚠️ Ya tienes ${qExist} capturado ${rango}. No lo puedes duplicar. Si necesitas cambiarlo, avísale a Recursos Humanos.`;
+  }
+  return '❌ No pude registrar tu solicitud. Revisa las fechas.';
 }
 
 function mensajeErrorAsistencia(r, tipo) {
