@@ -1,9 +1,12 @@
 // Cliente API sencillo con token JWT en localStorage
 const TOKEN_KEY = 'rh_token';
+const ROL_KEY = 'rh_rol';
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t) => localStorage.setItem(TOKEN_KEY, t);
-export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+export const clearToken = () => { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(ROL_KEY); };
+export const getRol = () => localStorage.getItem(ROL_KEY);
+export const setRol = (r) => localStorage.setItem(ROL_KEY, r || '');
 
 async function req(method, url, body) {
   const headers = { 'Content-Type': 'application/json' };

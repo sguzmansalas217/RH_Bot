@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { pool } from './pool.js';
 import { logger } from '../config/logger.js';
+import { sembrarCatalogos } from '../services/tenants.js';
 
 /**
  * Datos semilla: empresa demo, admin, tablas fiscales (CONFIGURABLES, actualízalas
@@ -28,24 +29,22 @@ async function seed() {
       [empresaId, hash, (process.env.ADMIN_WHATSAPP || '').split(',')[0] || null]
     );
 
-    // ── Catálogos base ──
-    await client.query(
-      `INSERT INTO departamentos (empresa_id, nombre) VALUES ($1,'Operaciones'),($1,'Administración')
-       ON CONFLICT DO NOTHING`,
-      [empresaId]
-    );
-    await client.query(
-      `INSERT INTO puestos (empresa_id, nombre, salario_base)
-       VALUES ($1,'Ayudante general',300),($1,'Oficial',450),($1,'Supervisor',700)
-       ON CONFLICT DO NOTHING`,
-      [empresaId]
-    );
-    await client.query(
-      `INSERT INTO horarios (empresa_id, nombre, hora_entrada, hora_salida, dias_laborales)
-       VALUES ($1,'Matutino','08:00','17:00','{1,2,3,4,5,6}')
-       ON CONFLICT DO NOTHING`,
-      [empresaId]
-    );
+    // ── Súper-admin (dueño del sistema, sin empresa) para dar de alta empresas ──
+    const saEmail = (process.env.SUPERADMIN_EMAIL || '').trim().toLowerCase();
+    const saPass = process.env.SUPERADMIN_PASSWORD;
+    if (saEmail && saPass) {
+      const saHash = await bcrypt.hash(saPass, 10);
+      await client.query(
+        `INSERT INTO usuarios_admin (empresa_id, nombre, email, password_hash, rol)
+         VALUES (NULL,'Súper Admin',$1,$2,'superadmin')
+         ON CONFLICT (email) DO NOTHING`,
+        [saEmail, saHash]
+      );
+      logger.info(`👑 Súper-admin listo: ${saEmail}`);
+    }
+
+    // ── Catálogos base (misma fuente que el alta de empresas nuevas) ──
+    await sembrarCatalogos(client, empresaId);
 
     // ── Obra demo con geocerca (CDMX, radio 150 m) ──
     await client.query(
@@ -74,30 +73,6 @@ async function seed() {
        ON CONFLICT (whatsapp) DO NOTHING`,
       [empresaId, puestoDemo.rows[0]?.id, obraDemo.rows[0]?.id, horarioDemo.rows[0]?.id]
     );
-
-    // ── Conceptos de nómina ──
-    const conceptos = [
-      ['SUELDO', 'Sueldo', 'percepcion', true],
-      ['HRS_EXTRA', 'Horas extra', 'percepcion', true],
-      ['BONO_PUNT', 'Bono de puntualidad', 'percepcion', true],
-      ['BONO_ASIST', 'Bono de asistencia', 'percepcion', true],
-      ['BONO_PROD', 'Bono de productividad', 'percepcion', true],
-      ['COMISION', 'Comisiones', 'percepcion', true],
-      ['ISR', 'ISR', 'deduccion', false],
-      ['IMSS', 'IMSS', 'deduccion', false],
-      ['INFONAVIT', 'INFONAVIT', 'deduccion', false],
-      ['FONACOT', 'FONACOT', 'deduccion', false],
-      ['PRESTAMO', 'Préstamo', 'deduccion', false],
-      ['DESC_FALTA', 'Descuento por falta', 'deduccion', false],
-      ['DESC_RETARDO', 'Descuento por retardo', 'deduccion', false],
-    ];
-    for (const [clave, nombre, naturaleza, gravable] of conceptos) {
-      await client.query(
-        `INSERT INTO conceptos_nomina (empresa_id, clave, nombre, naturaleza, gravable)
-         VALUES ($1,$2,$3,$4,$5) ON CONFLICT (empresa_id, clave) DO NOTHING`,
-        [empresaId, clave, nombre, naturaleza, gravable]
-      );
-    }
 
     // ── Tarifa ISR SEMANAL (representativa — ACTUALIZAR cada año fiscal) ──
     await client.query(`DELETE FROM sat_tarifas_isr WHERE periodo='semanal'`);

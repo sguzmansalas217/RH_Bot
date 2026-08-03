@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { login, requireAuth } from './auth.js';
+import { login, requireAuth, requireSuperadmin } from './auth.js';
+import { crearEmpresaConAdmin, listarEmpresas } from '../services/tenants.js';
 import { one, query } from '../db/pool.js';
 import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
 import { resolver, pendientes, ausencias } from '../services/leaves.js';
@@ -60,6 +61,19 @@ api.post('/login', login);
 // Todo lo demás requiere token
 api.use(requireAuth);
 const emp = (req) => req.user.empresa_id;
+
+// ─── Súper-admin: alta y listado de empresas (dueño del sistema) ───
+api.get('/admin/empresas', requireSuperadmin, async (req, res) => {
+  res.json(await listarEmpresas());
+});
+api.post('/admin/empresas', requireSuperadmin, async (req, res) => {
+  try {
+    const empresa = await crearEmpresaConAdmin(req.body || {});
+    res.status(201).json(empresa);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo crear la empresa' });
+  }
+});
 
 // ─── Empleados ───
 // Sincroniza las obras asignadas a un empleado (tabla empleado_obras).

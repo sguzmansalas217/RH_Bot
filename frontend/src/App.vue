@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { api, getToken, setToken, clearToken } from './api.js';
+import { ref, computed } from 'vue';
+import { api, getToken, setToken, clearToken, getRol, setRol } from './api.js';
 import Empleados from './views/Empleados.vue';
+import Empresas from './views/Empresas.vue';
 import Obras from './views/Obras.vue';
 import Asistencias from './views/Asistencias.vue';
 import Aprobaciones from './views/Aprobaciones.vue';
@@ -13,13 +14,16 @@ import Conceptos from './views/Conceptos.vue';
 import Configuracion from './views/Configuracion.vue';
 
 const logged = ref(!!getToken());
-const email = ref('admin@demo.com');
-const password = ref('admin123');
+const rol = ref(getRol());
+const email = ref('');
+const password = ref('');
 const error = ref('');
-const vista = ref('empleados');
 const menuOpen = ref(false); // menú lateral abierto en móvil
 
+const esSuper = computed(() => rol.value === 'superadmin');
+
 const vistas = {
+  empresas: Empresas,
   empleados: Empleados,
   obras: Obras,
   horarios: Horarios,
@@ -31,7 +35,8 @@ const vistas = {
   incidencias: Incidencias,
   configuracion: Configuracion,
 };
-const menu = [
+// El súper-admin (dueño del sistema) solo administra empresas.
+const menuAdmin = [
   ['empleados', '👥 Empleados'],
   ['obras', '📍 Obras / Geocercas'],
   ['horarios', '🕗 Horarios'],
@@ -43,12 +48,17 @@ const menu = [
   ['incidencias', '⚠️ Incidencias'],
   ['configuracion', '⚙️ Configuración'],
 ];
+const menu = computed(() => (esSuper.value ? [['empresas', '🏢 Empresas']] : menuAdmin));
+const vista = ref(esSuper.value ? 'empresas' : 'empleados');
 
 async function login() {
   error.value = '';
   try {
-    const { token } = await api.post('/login', { email: email.value, password: password.value });
+    const { token, usuario } = await api.post('/login', { email: email.value, password: password.value });
     setToken(token);
+    setRol(usuario?.rol);
+    rol.value = usuario?.rol;
+    vista.value = esSuper.value ? 'empresas' : 'empleados';
     logged.value = true;
   } catch (e) {
     error.value = 'Credenciales inválidas';
@@ -56,6 +66,7 @@ async function login() {
 }
 function logout() {
   clearToken();
+  rol.value = null;
   logged.value = false;
 }
 // En móvil: cambia de vista y cierra el menú deslizable

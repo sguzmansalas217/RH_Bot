@@ -311,3 +311,9 @@ CREATE TABLE IF NOT EXISTS conversacion_estado (
     contexto        JSONB,
     actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ─── Multi-empresa: número de WhatsApp propio por empresa (opcional) ───────
+-- Si están vacíos, la empresa usa el número compartido (env WA_CLOUD_*).
+-- Preparado para "graduar" a una empresa a su propio número en el futuro.
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS wa_phone_id TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS wa_token    TEXT;

@@ -14,7 +14,10 @@ export async function login(req, res) {
     config.jwt.secret,
     { expiresIn: config.jwt.expires }
   );
-  res.json({ token, usuario: { id: user.id, nombre: user.nombre, rol: user.rol } });
+  res.json({
+    token,
+    usuario: { id: user.id, nombre: user.nombre, rol: user.rol, empresa_id: user.empresa_id },
+  });
 }
 
 export function requireAuth(req, res, next) {
@@ -27,4 +30,10 @@ export function requireAuth(req, res, next) {
   } catch {
     res.status(401).json({ error: 'Token inválido' });
   }
+}
+
+// Solo el dueño del sistema (rol superadmin) puede administrar empresas.
+export function requireSuperadmin(req, res, next) {
+  if (req.user?.rol !== 'superadmin') return res.status(403).json({ error: 'Solo súper-admin' });
+  next();
 }
