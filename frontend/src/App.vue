@@ -5,6 +5,7 @@ import Empleados from './views/Empleados.vue';
 import Obras from './views/Obras.vue';
 import Asistencias from './views/Asistencias.vue';
 import Aprobaciones from './views/Aprobaciones.vue';
+import Ausencias from './views/Ausencias.vue';
 import Nomina from './views/Nomina.vue';
 import Incidencias from './views/Incidencias.vue';
 import Horarios from './views/Horarios.vue';
@@ -24,6 +25,7 @@ const vistas = {
   horarios: Horarios,
   asistencias: Asistencias,
   aprobaciones: Aprobaciones,
+  ausencias: Ausencias,
   nomina: Nomina,
   conceptos: Conceptos,
   incidencias: Incidencias,
@@ -35,6 +37,7 @@ const menu = [
   ['horarios', '🕗 Horarios'],
   ['asistencias', '🕐 Asistencias'],
   ['aprobaciones', '✅ Aprobaciones'],
+  ['ausencias', '🏖️ Ausencias'],
   ['nomina', '💰 Nómina'],
   ['conceptos', '🎁 Bonos / Conceptos'],
   ['incidencias', '⚠️ Incidencias'],

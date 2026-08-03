@@ -12,6 +12,7 @@ body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-
 button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 14px; font-size: 14px; background: var(--primary); color: #fff; }
 button.ghost { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
 button.danger { background: #c0392b; }
+button.secondary { background: #64748b; }
 button:hover { opacity: .92; }
 input, select { padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; width: 100%; }
 label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }

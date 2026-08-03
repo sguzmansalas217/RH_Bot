@@ -70,3 +70,21 @@ export async function crearObra({ empresaId, nombre, tipo, lat, lon, radio_metro
     [empresaId, nombre, tipo || 'obra', lon, lat, radio_metros || 100]
   );
 }
+
+/** Actualiza los datos de una obra/geocerca. */
+export async function actualizarObra({ id, empresaId, nombre, tipo, lat, lon, radio_metros }) {
+  return one(
+    `UPDATE obras SET nombre=$3, tipo=$4, ubicacion=ST_MakePoint($5,$6)::geography, radio_metros=$7
+      WHERE id=$1 AND empresa_id=$2
+      RETURNING id, nombre, radio_metros`,
+    [id, empresaId, nombre, tipo || 'obra', lon, lat, radio_metros || 100]
+  );
+}
+
+/** Da de baja una obra (soft-delete: activa=false) sin perder el historial. */
+export async function eliminarObra(id, empresaId) {
+  return one(`UPDATE obras SET activa=false WHERE id=$1 AND empresa_id=$2 RETURNING id`, [
+    id,
+    empresaId,
+  ]);
+}

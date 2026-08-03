@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { login, requireAuth } from './auth.js';
 import { one, query } from '../db/pool.js';
-import { crearObra } from '../services/geofence.js';
-import { resolver, pendientes } from '../services/leaves.js';
+import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
+import { resolver, pendientes, ausencias } from '../services/leaves.js';
 import { calcularNomina } from '../services/payroll/index.js';
 import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
 import { logger } from '../config/logger.js';
@@ -263,7 +263,7 @@ api.get('/obras', async (req, res) => {
   const { rows } = await query(
     `SELECT id, nombre, tipo, radio_metros, activa,
             ST_Y(ubicacion::geometry) AS lat, ST_X(ubicacion::geometry) AS lon
-       FROM obras WHERE empresa_id=$1 ORDER BY nombre`,
+       FROM obras WHERE empresa_id=$1 AND activa=true ORDER BY nombre`,
     [emp(req)]
   );
   res.json(rows);
@@ -271,6 +271,16 @@ api.get('/obras', async (req, res) => {
 api.post('/obras', async (req, res) => {
   const b = req.body;
   res.status(201).json(await crearObra({ empresaId: emp(req), ...b }));
+});
+api.put('/obras/:id', async (req, res) => {
+  const b = req.body;
+  const row = await actualizarObra({ id: req.params.id, empresaId: emp(req), ...b });
+  if (!row) return res.status(404).json({ error: 'Obra no encontrada' });
+  res.json(row);
+});
+api.delete('/obras/:id', async (req, res) => {
+  await eliminarObra(req.params.id, emp(req));
+  res.status(204).end();
 });
 
 // ─── Asistencias / incidencias ───
@@ -298,6 +308,12 @@ api.get('/incidencias', async (req, res) => {
 
 // ─── Solicitudes (aprobar/rechazar) ───
 api.get('/pendientes', async (req, res) => res.json(await pendientes(emp(req))));
+api.get('/ausencias', async (req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const en90 = new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10);
+  const { desde, hasta } = req.query;
+  res.json(await ausencias(emp(req), desde || hoy, hasta || en90));
+});
 api.post('/solicitudes/:tipo/:id/resolver', async (req, res) => {
   const { tipo, id } = req.params;
   const { estatus, observaciones } = req.body;

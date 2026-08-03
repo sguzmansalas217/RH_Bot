@@ -118,19 +118,72 @@ export async function resolver(tipoSolicitud, id, { estatus, adminId, observacio
   return solicitud;
 }
 
+// Subconsulta LATERAL: lista (JSON) de quién más está AUSENTE (vacaciones o
+// permiso aprobado) en fechas que se empalman con las de esta solicitud.
+const EMPALMES_LATERAL = `
+  LEFT JOIN LATERAL (
+    SELECT json_agg(json_build_object(
+             'nombre', x.nombre, 'tipo', x.tipo, 'inicio', x.fi, 'fin', x.ff)) AS lista
+    FROM (
+      SELECT e2.nombre, 'vacaciones' AS tipo, v.fecha_inicio AS fi, v.fecha_fin AS ff
+        FROM vacaciones v JOIN empleados e2 ON e2.id=v.empleado_id
+       WHERE v.estatus='aprobada' AND e2.empresa_id=$1 AND e2.id<>s.empleado_id
+         AND v.fecha_inicio <= COALESCE(s.fecha_fin, s.fecha_inicio)
+         AND COALESCE(v.fecha_fin, v.fecha_inicio) >= s.fecha_inicio
+      UNION ALL
+      SELECT e2.nombre, 'permiso' AS tipo, p.fecha_inicio, p.fecha_fin
+        FROM permisos p JOIN empleados e2 ON e2.id=p.empleado_id
+       WHERE p.estatus='aprobado' AND e2.empresa_id=$1 AND e2.id<>s.empleado_id
+         AND p.fecha_inicio <= COALESCE(s.fecha_fin, s.fecha_inicio)
+         AND COALESCE(p.fecha_fin, p.fecha_inicio) >= s.fecha_inicio
+    ) x
+  ) emp ON true`;
+
 /** Solicitudes pendientes (para el panel y notificaciones al admin). */
 export async function pendientes(empresaId = 1) {
-  const q = (tabla, tipo) =>
+  // cols: expresiones específicas de cada tabla (dias, horas, motivo, subtipo)
+  const q = (tabla, tipo, cols) =>
     query(
-      `SELECT s.id, '${tipo}' AS tipo_solicitud, e.nombre AS empleado, e.whatsapp, s.estatus, s.creado_en
+      `SELECT s.id, '${tipo}' AS tipo_solicitud, e.nombre AS empleado, e.whatsapp,
+              s.estatus, s.creado_en, s.fecha_inicio, s.fecha_fin,
+              ${cols.dias} AS dias, ${cols.horas} AS horas,
+              ${cols.motivo} AS motivo, ${cols.subtipo} AS subtipo,
+              COALESCE(emp.lista, '[]'::json) AS empalmes
          FROM ${tabla} s JOIN empleados e ON e.id = s.empleado_id
+         ${EMPALMES_LATERAL}
         WHERE s.estatus='pendiente' AND e.empresa_id=$1 ORDER BY s.creado_en`,
       [empresaId]
     );
   const [p, v, i] = await Promise.all([
-    q('permisos', 'permiso'),
-    q('vacaciones', 'vacacion'),
-    q('incapacidades', 'incapacidad'),
+    q('permisos', 'permiso', { dias: 'NULL', horas: 's.horas', motivo: 's.motivo', subtipo: 's.tipo' }),
+    q('vacaciones', 'vacacion', { dias: 's.dias', horas: 'NULL', motivo: 'NULL', subtipo: 'NULL' }),
+    q('incapacidades', 'incapacidad', { dias: 's.dias', horas: 'NULL', motivo: 's.folio_imss', subtipo: 's.tipo' }),
   ]);
   return [...p.rows, ...v.rows, ...i.rows];
+}
+
+/** Ausencias APROBADAS que se cruzan con un rango (para la pantalla de Ausencias). */
+export async function ausencias(empresaId, desde, hasta) {
+  const { rows } = await query(
+    `SELECT * FROM (
+        SELECT 'vacaciones' AS tipo, e.nombre AS empleado, e.whatsapp,
+               v.fecha_inicio, v.fecha_fin, v.dias, v.estatus
+          FROM vacaciones v JOIN empleados e ON e.id=v.empleado_id
+         WHERE e.empresa_id=$1 AND v.estatus='aprobada'
+        UNION ALL
+        SELECT 'permiso' AS tipo, e.nombre, e.whatsapp,
+               p.fecha_inicio, p.fecha_fin, p.horas AS dias, p.estatus
+          FROM permisos p JOIN empleados e ON e.id=p.empleado_id
+         WHERE e.empresa_id=$1 AND p.estatus='aprobado'
+        UNION ALL
+        SELECT 'incapacidad' AS tipo, e.nombre, e.whatsapp,
+               i.fecha_inicio, i.fecha_fin, i.dias, i.estatus
+          FROM incapacidades i JOIN empleados e ON e.id=i.empleado_id
+         WHERE e.empresa_id=$1 AND i.estatus='aprobada'
+     ) a
+     WHERE a.fecha_inicio <= $3 AND COALESCE(a.fecha_fin, a.fecha_inicio) >= $2
+     ORDER BY a.fecha_inicio`,
+    [empresaId, desde, hasta]
+  );
+  return rows;
 }
