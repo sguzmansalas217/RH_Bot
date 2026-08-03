@@ -9,6 +9,7 @@ const editId = ref(null); // null = creando; con id = editando
 const direccion = ref('');
 const buscando = ref(false);
 const resultados = ref([]); // opciones que devuelve el buscador para elegir
+const coords = ref(''); // texto para pegar coordenadas o link largo de Google Maps
 
 // Objetos de Leaflet (no reactivos)
 let map, marker, circle;
@@ -76,6 +77,19 @@ function elegirResultado(res) {
   resultados.value = [];
 }
 
+// Pega "21.88, -102.29" o un link largo de Google Maps (.../@21.88,-102.29,17z/...)
+function usarCoords() {
+  const t = coords.value.trim();
+  if (!t) return;
+  // Busca un par lat,lon (el @ de los links de Google, o coordenadas sueltas)
+  const m = t.match(/(-?\d{1,2}(?:\.\d+)?)\s*[, ]\s*(-?\d{1,3}(?:\.\d+)?)/);
+  if (!m) return alert('No reconocí las coordenadas. Pega algo como: 21.88, -102.29');
+  const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) return alert('Esas coordenadas no son válidas.');
+  ponerPunto(lat, lon);
+  coords.value = '';
+}
+
 function editar(o) {
   editId.value = o.id;
   form.value = { nombre: o.nombre, tipo: o.tipo, lat: o.lat, lon: o.lon, radio_metros: o.radio_metros };
@@ -88,6 +102,7 @@ function cancelar() {
   form.value = vacia();
   direccion.value = '';
   resultados.value = [];
+  coords.value = '';
   if (marker) { map.removeLayer(marker); marker = null; }
   if (circle) { map.removeLayer(circle); circle = null; }
   map.setView(CENTRO_DEFAULT, 12);
@@ -153,6 +168,18 @@ onMounted(async () => {
       <ul v-if="resultados.length > 1" class="resultados">
         <li v-for="(r, i) in resultados" :key="i" @click="elegirResultado(r)">📍 {{ r.display_name }}</li>
       </ul>
+    </div>
+
+    <div class="field">
+      <label>O pega coordenadas</label>
+      <div class="row">
+        <input v-model="coords" style="flex:1" placeholder="21.88, -102.29  (o un link largo de Google Maps)"
+          @keyup.enter="usarCoords" />
+        <button class="secondary" @click="usarCoords">Usar</button>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin:4px 0 0">
+        En Google Maps: clic derecho sobre el punto → aparecen las coordenadas → cópialas y pégalas aquí.
+      </p>
     </div>
 
     <p style="color:var(--muted);font-size:13px;margin:4px 0">
