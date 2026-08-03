@@ -25,7 +25,15 @@ export function esAdmin(whatsapp, admins) {
 }
 
 export async function adminPorWhatsapp(whatsapp) {
-  return one(`SELECT * FROM usuarios_admin WHERE whatsapp = $1 AND activo = true`, [whatsapp]);
+  // Compara por los últimos 10 dígitos (tolera 52/521, "1" extra, guiones).
+  return one(
+    `SELECT * FROM usuarios_admin
+      WHERE whatsapp IS NOT NULL AND whatsapp <> ''
+        AND right(regexp_replace(whatsapp, '\\D', '', 'g'), 10) = $1
+        AND activo = true
+      LIMIT 1`,
+    [nacional10(whatsapp)]
+  );
 }
 
 export async function listar(empresaId = 1) {

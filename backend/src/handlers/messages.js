@@ -1,8 +1,7 @@
-import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 import { query } from '../db/pool.js';
 import { analizarIntencion } from '../ai/intent.js';
-import { buscarPorWhatsapp } from '../services/employees.js';
+import { buscarPorWhatsapp, adminPorWhatsapp } from '../services/employees.js';
 import { getEstado, setEstado, limpiarEstado } from '../services/state.js';
 import { registrarEntrada, registrarSalida, horasExtraSemana, resumenTrabajo } from '../services/attendance.js';
 import {
@@ -49,10 +48,13 @@ export function crearRouter(channel) {
     const { from } = msg;
     logger.debug({ from, type: msg.type }, 'Mensaje entrante');
 
-    // ¿Es administrador aprobando/consultando por WhatsApp?
-    if (config.whatsapp.admins.includes(from) && msg.type === 'texto') {
-      const manejado = await manejarComandoAdmin(from, msg.text, responder, channel);
-      if (manejado) return;
+    // ¿Es administrador de alguna empresa aprobando/consultando por WhatsApp?
+    if (msg.type === 'texto') {
+      const admin = await adminPorWhatsapp(from);
+      if (admin?.empresa_id) {
+        const manejado = await manejarComandoAdmin(admin, from, msg.text, responder, channel);
+        if (manejado) return;
+      }
     }
 
     const empleado = await buscarPorWhatsapp(from);
@@ -126,6 +128,7 @@ export function crearRouter(channel) {
         const p = await solicitarPermiso(empleado, ent);
         const f = fechaCorta(p.fecha_inicio);
         await notificarAdmins(
+          empleado.empresa_id,
           `🔔 *Nuevo permiso* #${p.id}\n${empleado.nombre}\nMotivo: ${p.motivo || '—'}\nFecha: ${f}\nResponde: *aprobar permiso ${p.id}* o *rechazar permiso ${p.id}*`
         );
         return responder(
@@ -146,6 +149,7 @@ export function crearRouter(channel) {
           );
         }
         await notificarAdmins(
+          empleado.empresa_id,
           `🔔 *Vacaciones* #${r.solicitud.id}\n${empleado.nombre}\n${r.solicitud.fecha_inicio} → ${r.solicitud.fecha_fin} (${r.dias} días)\nResponde: *aprobar vacacion ${r.solicitud.id}* o *rechazar vacacion ${r.solicitud.id}*`
         );
         return responder(to, `✅ Solicité *${r.dias}* días de vacaciones. Pendiente de autorización.`);
@@ -283,17 +287,25 @@ export function crearRouter(channel) {
     await limpiarEstado(to);
 
     await notificarAdmins(
+      empleado.empresa_id,
       `🔔 *Incapacidad con comprobante* #${incapId}\n${empleado.nombre}\nRevisa en el panel.\nResponde: *aprobar incapacidad ${incapId}* o *rechazar incapacidad ${incapId}*`
     );
     return responder(to, '📎 Recibí tu comprobante. Tu incapacidad quedó *pendiente* de revisión.');
   }
 
-  async function notificarAdmins(texto) {
-    for (const admin of config.whatsapp.admins) {
+  // Notifica solo a los admins de ESA empresa que tengan WhatsApp registrado.
+  async function notificarAdmins(empresaId, texto) {
+    if (!empresaId) return;
+    const { rows } = await query(
+      `SELECT whatsapp FROM usuarios_admin
+        WHERE empresa_id=$1 AND whatsapp IS NOT NULL AND whatsapp <> '' AND activo=true`,
+      [empresaId]
+    );
+    for (const a of rows) {
       try {
-        await channel.sendText(admin, texto);
+        await channel.sendText(a.whatsapp, texto);
       } catch (err) {
-        logger.error({ err, admin }, 'No se pudo notificar al admin');
+        logger.error({ err, admin: a.whatsapp }, 'No se pudo notificar al admin');
       }
     }
   }

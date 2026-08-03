@@ -339,7 +339,7 @@ api.get('/ausencias', async (req, res) => {
 api.post('/solicitudes/:tipo/:id/resolver', async (req, res) => {
   const { tipo, id } = req.params;
   const { estatus, observaciones } = req.body;
-  const row = await resolver(tipo, id, { estatus, adminId: req.user.id, observaciones });
+  const row = await resolver(tipo, id, { estatus, adminId: req.user.id, observaciones, empresaId: emp(req) });
   res.json(row);
   // Avisa al empleado por WhatsApp (después de responder, no bloquea el panel)
   notificarEmpleado(req, tipo, estatus, row, observaciones);

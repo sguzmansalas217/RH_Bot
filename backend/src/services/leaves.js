@@ -94,17 +94,26 @@ export async function consultarEstatus(empleadoId) {
 // ─── APROBACIONES (admin) ─────────────────────────────────────────────────
 const TABLAS = { permiso: 'permisos', vacacion: 'vacaciones', incapacidad: 'incapacidades' };
 
-export async function resolver(tipoSolicitud, id, { estatus, adminId, observaciones }) {
+export async function resolver(tipoSolicitud, id, { estatus, adminId, observaciones, empresaId } = {}) {
   const tabla = TABLAS[tipoSolicitud];
   if (!tabla) throw new Error('Tipo de solicitud inválido');
 
-  const extra = tabla === 'incapacidades' && observaciones ? ', observaciones=$4' : '';
   const params = [id, estatus, adminId];
-  if (extra) params.push(observaciones);
+  let extra = '';
+  if (tabla === 'incapacidades' && observaciones) {
+    params.push(observaciones);
+    extra = `, observaciones=$${params.length}`;
+  }
+  // Guardia multi-empresa: solo resuelve si la solicitud es de esa empresa.
+  let scope = '';
+  if (empresaId != null) {
+    params.push(empresaId);
+    scope = ` AND empleado_id IN (SELECT id FROM empleados WHERE empresa_id=$${params.length})`;
+  }
 
   const solicitud = await one(
     `UPDATE ${tabla} SET estatus=$2, aprobado_por=$3, resuelto_en=now() ${extra}
-      WHERE id=$1 RETURNING *`,
+      WHERE id=$1${scope} RETURNING *`,
     params
   );
 
@@ -140,7 +149,8 @@ const EMPALMES_LATERAL = `
   ) emp ON true`;
 
 /** Solicitudes pendientes (para el panel y notificaciones al admin). */
-export async function pendientes(empresaId = 1) {
+export async function pendientes(empresaId) {
+  if (empresaId == null) throw new Error('pendientes requiere empresaId');
   // cols: expresiones específicas de cada tabla (dias, horas, motivo, subtipo)
   const q = (tabla, tipo, cols) =>
     query(
