@@ -23,6 +23,10 @@ async function main() {
 
   app.get('/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
+  // Aviso de privacidad (requerido por Meta para publicar la app de WhatsApp)
+  app.get(['/aviso-privacidad', '/privacidad'], (_req, res) =>
+    res.sendFile(path.resolve(__dirname, 'legal/aviso-privacidad.html')));
+
   // ── Canal WhatsApp + router de mensajes ──
   const channel = createChannel();
   const router = crearRouter(channel);
