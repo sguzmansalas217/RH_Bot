@@ -8,13 +8,18 @@ function round(n) {
   return Math.round(Number(n) * 100) / 100;
 }
 
+// Normaliza una fecha (objeto Date de pg o texto) a 'YYYY-MM-DD'.
+function aISO(v) {
+  return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
+}
+
 // Itera fechas YYYY-MM-DD entre inicio y fin inclusive
 function* rangoFechas(inicio, fin) {
-  const d = new Date(inicio + 'T00:00:00');
-  const end = new Date(fin + 'T00:00:00');
+  const d = new Date(aISO(inicio) + 'T00:00:00Z');
+  const end = new Date(aISO(fin) + 'T00:00:00Z');
   while (d <= end) {
-    yield { iso: d.toISOString().slice(0, 10), dow: d.getDay() };
-    d.setDate(d.getDate() + 1);
+    yield { iso: d.toISOString().slice(0, 10), dow: d.getUTCDay() };
+    d.setUTCDate(d.getUTCDate() + 1);
   }
 }
 
@@ -54,7 +59,7 @@ async function calcularRecibo(emp, empresa, periodo) {
     `SELECT * FROM asistencias WHERE empleado_id=$1 AND fecha BETWEEN $2 AND $3`,
     [emp.id, fecha_inicio, fecha_fin]
   );
-  const porFecha = new Map(asistencias.map((a) => [a.fecha.toISOString().slice(0, 10), a]));
+  const porFecha = new Map(asistencias.map((a) => [aISO(a.fecha), a]));
 
   const diasLaborables = emp.dias_laborales || [1, 2, 3, 4, 5, 6];
   let diasTrabajados = 0;
