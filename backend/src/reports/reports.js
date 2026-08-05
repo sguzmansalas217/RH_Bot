@@ -46,7 +46,9 @@ export async function asistenciaExcel(res, empresaId, desde, hasta) {
 /** Genera un recibo de nómina en PDF. */
 export async function reciboPDF(res, reciboId) {
   const { rows: cab } = await query(
-    `SELECT r.*, e.nombre AS empleado, e.numero_empleado, p.fecha_inicio, p.fecha_fin
+    `SELECT r.*, e.nombre AS empleado, e.numero_empleado,
+            e.salario_diario, e.dias_vacaciones_saldo,
+            p.fecha_inicio, p.fecha_fin
        FROM recibos_nomina r
        JOIN empleados e ON e.id = r.empleado_id
        JOIN periodos_nomina p ON p.id = r.periodo_id
@@ -69,7 +71,9 @@ export async function reciboPDF(res, reciboId) {
   doc.fontSize(10);
   doc.text(`Empleado: ${r.empleado}`);
   doc.text(`Periodo: ${fmt(r.fecha_inicio)} al ${fmt(r.fecha_fin)}`);
-  doc.text(`Días trabajados: ${r.dias_trabajados}   Horas extra: ${r.horas_extra}`).moveDown();
+  doc.text(`Sueldo diario: $${Number(r.salario_diario).toFixed(2)}`);
+  doc.text(`Días trabajados: ${r.dias_trabajados}   Horas extra: ${r.horas_extra}`);
+  doc.text(`Días de vacaciones disponibles: ${Number(r.dias_vacaciones_saldo)}`).moveDown();
 
   doc.font('Helvetica-Bold').text('Percepciones');
   doc.font('Helvetica');
