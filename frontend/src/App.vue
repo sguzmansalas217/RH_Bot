@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { api, getToken, setToken, clearToken, getRol, setRol } from './api.js';
 import Empleados from './views/Empleados.vue';
 import Empresas from './views/Empresas.vue';
+import TablasFiscales from './views/TablasFiscales.vue';
 import Obras from './views/Obras.vue';
 import Asistencias from './views/Asistencias.vue';
 import Aprobaciones from './views/Aprobaciones.vue';
@@ -24,6 +25,7 @@ const esSuper = computed(() => rol.value === 'superadmin');
 
 const vistas = {
   empresas: Empresas,
+  tablas: TablasFiscales,
   empleados: Empleados,
   obras: Obras,
   horarios: Horarios,
@@ -48,7 +50,11 @@ const menuAdmin = [
   ['incidencias', '⚠️ Incidencias'],
   ['configuracion', '⚙️ Configuración'],
 ];
-const menu = computed(() => (esSuper.value ? [['empresas', '🏢 Empresas']] : menuAdmin));
+const menu = computed(() =>
+  esSuper.value
+    ? [['empresas', '🏢 Empresas'], ['tablas', '📊 Tablas ISR/IMSS']]
+    : menuAdmin
+);
 const vista = ref(esSuper.value ? 'empresas' : 'empleados');
 
 async function login() {

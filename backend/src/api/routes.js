@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { login, requireAuth, requireSuperadmin } from './auth.js';
 import { crearEmpresaConAdmin, listarEmpresas, eliminarEmpresa } from '../services/tenants.js';
+import { listarTarifasISR, guardarTarifasISR, listarIMSS, guardarIMSS } from '../services/fiscal.js';
 import { one, query } from '../db/pool.js';
 import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
 import { resolver, pendientes, ausencias } from '../services/leaves.js';
@@ -80,6 +81,29 @@ api.delete('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
     res.json(await eliminarEmpresa(req.params.id));
   } catch (err) {
     res.status(400).json({ error: err.message || 'No se pudo eliminar la empresa' });
+  }
+});
+
+// ─── Súper-admin: tablas fiscales ISR / IMSS (nacionales, compartidas) ───
+api.get('/admin/isr', requireSuperadmin, async (req, res) => {
+  res.json(await listarTarifasISR(req.query.periodo || 'semanal'));
+});
+api.put('/admin/isr', requireSuperadmin, async (req, res) => {
+  try {
+    const { periodo, renglones } = req.body || {};
+    res.json(await guardarTarifasISR(periodo, renglones));
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo guardar la tabla de ISR' });
+  }
+});
+api.get('/admin/imss', requireSuperadmin, async (_req, res) => {
+  res.json(await listarIMSS());
+});
+api.put('/admin/imss', requireSuperadmin, async (req, res) => {
+  try {
+    res.json(await guardarIMSS(req.body?.parametros || []));
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo guardar IMSS' });
   }
 });
 
