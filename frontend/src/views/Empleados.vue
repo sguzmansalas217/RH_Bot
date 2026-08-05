@@ -4,30 +4,35 @@ import { api } from '../api.js';
 
 const empleados = ref([]);
 const catalogos = ref({ puestos: [], departamentos: [], obras: [], horarios: [] });
+const conceptos = ref([]);       // catálogo de bonos/deducciones de la empresa
+const asignaciones = ref([]);    // todas las asignaciones (para precargar al editar)
 const showModal = ref(false);
 const form = ref({});
 
 async function cargar() {
-  empleados.value = await api.get('/empleados');
-  const [puestos, departamentos, obras, horarios] = await Promise.all([
-    api.get('/puestos'), api.get('/departamentos'), api.get('/obras'), api.get('/horarios'),
+  const [empleados_, puestos, departamentos, obras, horarios, conceptos_, asignaciones_] = await Promise.all([
+    api.get('/empleados'), api.get('/puestos'), api.get('/departamentos'),
+    api.get('/obras'), api.get('/horarios'), api.get('/conceptos'), api.get('/asignaciones'),
   ]);
+  empleados.value = empleados_;
   catalogos.value = { puestos, departamentos, obras, horarios };
+  conceptos.value = conceptos_;
+  asignaciones.value = asignaciones_;
 }
 
 function nuevo() {
-  form.value = { salario_diario: 0, dias_vacaciones_saldo: 12, obra_ids: [] };
+  form.value = { salario_diario: 0, dias_vacaciones_saldo: 12, obra_ids: [], asignaciones: [], _quitadas: [] };
   showModal.value = true;
-}
-async function guardar() {
-  if (form.value.id) await api.put(`/empleados/${form.value.id}`, form.value);
-  else await api.post('/empleados', form.value);
-  showModal.value = false;
-  await cargar();
 }
 function editar(e) {
   // Copia el arreglo de obras para no mutar la fila de la tabla
-  form.value = { ...e, obra_ids: [...(e.obra_ids || [])] };
+  form.value = {
+    ...e,
+    obra_ids: [...(e.obra_ids || [])],
+    // Precarga los bonos/deducciones ya asignados a este empleado
+    asignaciones: asignaciones.value.filter((a) => a.empleado_id === e.id).map((a) => ({ ...a })),
+    _quitadas: [],
+  };
   showModal.value = true;
 }
 async function darBaja(e) {
@@ -35,6 +40,50 @@ async function darBaja(e) {
     await api.del(`/empleados/${e.id}`);
     await cargar();
   }
+}
+
+// ── Bonos y deducciones dentro de la ficha del empleado ──
+function agregarConcepto() {
+  if (!conceptos.value.length) return;
+  form.value.asignaciones.push({ concepto_id: null, monto: 0, porcentaje: null });
+}
+function quitarConcepto(i) {
+  const a = form.value.asignaciones[i];
+  if (a.id) form.value._quitadas.push(a.id); // marcar para borrar en el servidor
+  form.value.asignaciones.splice(i, 1);
+}
+function naturalezaDe(conceptoId) {
+  const c = conceptos.value.find((x) => x.id === conceptoId);
+  return c ? c.naturaleza : null;
+}
+
+async function guardar() {
+  // 1) Guarda/crea al empleado y obtén su id
+  let empId = form.value.id;
+  if (empId) {
+    await api.put(`/empleados/${empId}`, form.value);
+  } else {
+    const creado = await api.post('/empleados', form.value);
+    empId = creado.id;
+  }
+
+  // 2) Sincroniza los bonos/deducciones asignados
+  for (const id of form.value._quitadas || []) {
+    await api.del(`/asignaciones/${id}`);
+  }
+  for (const a of form.value.asignaciones || []) {
+    if (!a.id && a.concepto_id) {
+      await api.post('/asignaciones', {
+        empleado_id: empId,
+        concepto_id: a.concepto_id,
+        monto: a.monto || null,
+        porcentaje: a.porcentaje || null,
+      });
+    }
+  }
+
+  showModal.value = false;
+  await cargar();
 }
 
 onMounted(cargar);
@@ -93,6 +142,45 @@ onMounted(cargar);
         <div class="field"><label>Salario diario</label><input type="number" v-model.number="form.salario_diario" /></div>
         <div class="field"><label>Días de vacaciones</label><input type="number" v-model.number="form.dias_vacaciones_saldo" /></div>
       </div>
+
+      <!-- ── Bonos y deducciones de este empleado ── -->
+      <div class="field" style="margin-top:6px">
+        <label>Bonos y deducciones</label>
+        <p style="color:#667;font-size:13px;margin:2px 0 8px">
+          Se aplican cada nómina. Usa monto fijo <b>o</b> porcentaje del sueldo. Los conceptos se crean en “Bonos / Conceptos”.
+        </p>
+        <table v-if="form.asignaciones && form.asignaciones.length">
+          <thead>
+            <tr><th>Concepto</th><th>Tipo</th><th>Monto ($)</th><th>%</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="(a, i) in form.asignaciones" :key="a.id || 'n' + i">
+              <td>
+                <select v-model="a.concepto_id" :disabled="!!a.id">
+                  <option :value="null">—</option>
+                  <option v-for="c in conceptos" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+                </select>
+              </td>
+              <td>
+                <span v-if="naturalezaDe(a.concepto_id) === 'percepcion'" style="color:#065f46">Bono (+)</span>
+                <span v-else-if="naturalezaDe(a.concepto_id) === 'deduccion'" style="color:#c0392b">Deducción (−)</span>
+                <span v-else style="color:#667">—</span>
+              </td>
+              <td><input type="number" v-model.number="a.monto" :disabled="!!a.id" style="max-width:110px" /></td>
+              <td><input type="number" v-model.number="a.porcentaje" :disabled="!!a.id" placeholder="opc." style="max-width:80px" /></td>
+              <td><button class="danger" @click="quitarConcepto(i)">Quitar</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else style="color:#667;font-size:13px;margin:0 0 8px">Sin bonos ni deducciones asignados.</p>
+        <button class="ghost" type="button" @click="agregarConcepto" :disabled="!conceptos.length">
+          + Agregar bono / deducción
+        </button>
+        <p v-if="!conceptos.length" style="color:#667;font-size:13px;margin:6px 0 0">
+          Primero crea conceptos en “Bonos / Conceptos”.
+        </p>
+      </div>
+
       <div class="row" style="justify-content:end;margin-top:8px">
         <button class="ghost" @click="showModal = false">Cancelar</button>
         <button @click="guardar">Guardar</button>
