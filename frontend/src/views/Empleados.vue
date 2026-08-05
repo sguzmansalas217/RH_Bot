@@ -146,33 +146,38 @@ onMounted(cargar);
       <!-- ── Bonos y deducciones de este empleado ── -->
       <div class="field" style="margin-top:6px">
         <label>Bonos y deducciones</label>
-        <p style="color:#667;font-size:13px;margin:2px 0 8px">
+        <p style="color:#667;font-size:13px;margin:2px 0 10px">
           Se aplican cada nómina. Usa monto fijo <b>o</b> porcentaje del sueldo. Los conceptos se crean en “Bonos / Conceptos”.
         </p>
-        <table v-if="form.asignaciones && form.asignaciones.length">
-          <thead>
-            <tr><th>Concepto</th><th>Tipo</th><th>Monto ($)</th><th>%</th><th></th></tr>
-          </thead>
-          <tbody>
-            <tr v-for="(a, i) in form.asignaciones" :key="a.id || 'n' + i">
-              <td>
-                <select v-model="a.concepto_id" :disabled="!!a.id">
-                  <option :value="null">—</option>
-                  <option v-for="c in conceptos" :key="c.id" :value="c.id">{{ c.nombre }}</option>
-                </select>
-              </td>
-              <td>
-                <span v-if="naturalezaDe(a.concepto_id) === 'percepcion'" style="color:#065f46">Bono (+)</span>
-                <span v-else-if="naturalezaDe(a.concepto_id) === 'deduccion'" style="color:#c0392b">Deducción (−)</span>
-                <span v-else style="color:#667">—</span>
-              </td>
-              <td><input type="number" v-model.number="a.monto" :disabled="!!a.id" style="max-width:110px" /></td>
-              <td><input type="number" v-model.number="a.porcentaje" :disabled="!!a.id" placeholder="opc." style="max-width:80px" /></td>
-              <td><button class="danger" @click="quitarConcepto(i)">Quitar</button></td>
-            </tr>
-          </tbody>
-        </table>
-        <p v-else style="color:#667;font-size:13px;margin:0 0 8px">Sin bonos ni deducciones asignados.</p>
+
+        <div v-for="(a, i) in form.asignaciones" :key="a.id || 'n' + i" class="deduc-card">
+          <div class="deduc-top">
+            <select v-model="a.concepto_id" :disabled="!!a.id" class="deduc-concepto">
+              <option :value="null">— Elegir concepto —</option>
+              <option v-for="c in conceptos" :key="c.id" :value="c.id">{{ c.nombre }}</option>
+            </select>
+            <span
+              v-if="naturalezaDe(a.concepto_id)"
+              class="deduc-tipo"
+              :style="{ color: naturalezaDe(a.concepto_id) === 'percepcion' ? '#065f46' : '#c0392b' }"
+            >{{ naturalezaDe(a.concepto_id) === 'percepcion' ? 'Bono (+)' : 'Deducción (−)' }}</span>
+          </div>
+          <div class="deduc-bottom">
+            <div class="field" style="margin:0">
+              <label style="font-size:12px">Monto ($)</label>
+              <input type="number" v-model.number="a.monto" :disabled="!!a.id" />
+            </div>
+            <div class="field" style="margin:0">
+              <label style="font-size:12px">o Porcentaje (%)</label>
+              <input type="number" v-model.number="a.porcentaje" :disabled="!!a.id" placeholder="opcional" />
+            </div>
+            <button class="danger" type="button" @click="quitarConcepto(i)">Quitar</button>
+          </div>
+        </div>
+
+        <p v-if="!form.asignaciones || !form.asignaciones.length" style="color:#667;font-size:13px;margin:0 0 10px">
+          Sin bonos ni deducciones asignados.
+        </p>
         <button class="ghost" type="button" @click="agregarConcepto" :disabled="!conceptos.length">
           + Agregar bono / deducción
         </button>
@@ -188,3 +193,23 @@ onMounted(cargar);
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Ventana un poco más ancha para que quepan los bonos/deducciones cómodos */
+.modal { width: min(560px, 100%); }
+
+/* Cada bono/deducción en su propia tarjeta apilada (se ve ordenado en móvil y escritorio) */
+.deduc-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #fafafa;
+}
+.deduc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.deduc-concepto { flex: 1; min-width: 0; }
+.deduc-tipo { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.deduc-bottom { display: flex; align-items: end; gap: 10px; }
+.deduc-bottom .field { flex: 1; }
+.deduc-bottom .danger { white-space: nowrap; }
+</style>
