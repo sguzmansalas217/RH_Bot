@@ -67,6 +67,7 @@ async function calcularRecibo(emp, empresa, periodo) {
   let totalHorasExtra = 0;
   let totalRetardosMin = 0;
   let domingosTrabajados = 0;
+  let diasDescansoNoTrabajados = 0; // días de descanso (no laborables) que no se trabajaron
 
   for (const { iso, dow } of rangoFechas(fecha_inicio, fecha_fin)) {
     const a = porFecha.get(iso);
@@ -78,6 +79,8 @@ async function calcularRecibo(emp, empresa, periodo) {
       if (dow === 0) domingosTrabajados++;
     } else if (esLaborable) {
       faltas++;
+    } else {
+      diasDescansoNoTrabajados++;
     }
   }
 
@@ -92,6 +95,14 @@ async function calcularRecibo(emp, empresa, periodo) {
 
   const sueldo = Number(emp.salario_diario) * diasTrabajados;
   percep('Sueldo', sueldo, diasTrabajados);
+
+  // Día(s) de descanso pagado(s) — "séptimo día" (Art. 69-71 LFT).
+  // Se pagan solo si el empleado cumplió su semana (sin faltas). Si trabajó el
+  // día de descanso, ya se contó como día trabajado + prima dominical, no se duplica.
+  const diasDescansoPagados = faltas === 0 ? diasDescansoNoTrabajados : 0;
+  if (diasDescansoPagados > 0) {
+    percep('Día de descanso', Number(emp.salario_diario) * diasDescansoPagados, diasDescansoPagados);
+  }
 
   // Horas extra (dobles las primeras 9/sem, triples el excedente)
   const heDobles = Math.min(totalHorasExtra, 9);
