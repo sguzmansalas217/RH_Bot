@@ -74,12 +74,12 @@ export async function reciboPDF(res, reciboId) {
   doc.font('Helvetica-Bold').text('Percepciones');
   doc.font('Helvetica');
   detalle.filter((d) => d.naturaleza === 'percepcion').forEach((d) => {
-    doc.text(`  ${d.concepto}`, { continued: true }).text(`$${Number(d.importe).toFixed(2)}`, { align: 'right' });
+    doc.text(detalleTexto(d), { continued: true }).text(`$${Number(d.importe).toFixed(2)}`, { align: 'right' });
   });
   doc.moveDown(0.5).font('Helvetica-Bold').text('Deducciones');
   doc.font('Helvetica');
   detalle.filter((d) => d.naturaleza === 'deduccion').forEach((d) => {
-    doc.text(`  ${d.concepto}`, { continued: true }).text(`$${Number(d.importe).toFixed(2)}`, { align: 'right' });
+    doc.text(detalleTexto(d), { continued: true }).text(`$${Number(d.importe).toFixed(2)}`, { align: 'right' });
   });
 
   doc.moveDown();
@@ -92,3 +92,15 @@ export async function reciboPDF(res, reciboId) {
 }
 
 const fmt = (d) => new Date(d).toLocaleDateString('es-MX');
+
+// Arma la etiqueta de un renglón del recibo con su cantidad/unidad según el concepto.
+function detalleTexto(d) {
+  const c = d.concepto;
+  if (d.cantidad == null) return `  ${c}`;
+  const n = Number(d.cantidad);
+  if (c === 'ISR') return `  ${c} (${n.toFixed(2)}%)`;
+  if (c === 'Horas extra') return `  ${c} (${n} h)`;
+  if (c === 'Descuento por retardo') return `  ${c} (${n} min)`;
+  if (c === 'Prima dominical') return `  ${c} (${n} ${n === 1 ? 'domingo' : 'domingos'})`;
+  return `  ${c} (${n} ${n === 1 ? 'día' : 'días'})`;
+}

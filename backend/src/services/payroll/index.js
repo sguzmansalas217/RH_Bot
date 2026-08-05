@@ -148,11 +148,12 @@ async function calcularRecibo(emp, empresa, periodo) {
     .reduce((s, d) => s + d.importe, 0);
 
   const isr = await calcularISR(baseGravable, periodo.tipo === 'quincenal' ? 'mensual' : 'semanal');
-  deduc('ISR', isr);
+  // Guarda el % efectivo de ISR (impuesto / base gravable) para mostrarlo en el recibo.
+  deduc('ISR', isr, baseGravable > 0 ? round((isr / baseGravable) * 100) : null);
 
   const diasPeriodo = diasTrabajados || 7;
   const imss = await calcularIMSS(emp.salario_diario_integrado || emp.salario_diario, diasPeriodo);
-  deduc('IMSS', imss);
+  deduc('IMSS', imss, diasPeriodo); // días cotizados
 
   // Préstamos y FONACOT (amortización semanal)
   const { rows: prestamos } = await query(
