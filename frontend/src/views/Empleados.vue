@@ -58,32 +58,36 @@ function naturalezaDe(conceptoId) {
 }
 
 async function guardar() {
-  // 1) Guarda/crea al empleado y obtén su id
-  let empId = form.value.id;
-  if (empId) {
-    await api.put(`/empleados/${empId}`, form.value);
-  } else {
-    const creado = await api.post('/empleados', form.value);
-    empId = creado.id;
-  }
-
-  // 2) Sincroniza los bonos/deducciones asignados
-  for (const id of form.value._quitadas || []) {
-    await api.del(`/asignaciones/${id}`);
-  }
-  for (const a of form.value.asignaciones || []) {
-    if (!a.id && a.concepto_id) {
-      await api.post('/asignaciones', {
-        empleado_id: empId,
-        concepto_id: a.concepto_id,
-        monto: a.monto || null,
-        porcentaje: a.porcentaje || null,
-      });
+  try {
+    // 1) Guarda/crea al empleado y obtén su id
+    let empId = form.value.id;
+    if (empId) {
+      await api.put(`/empleados/${empId}`, form.value);
+    } else {
+      const creado = await api.post('/empleados', form.value);
+      empId = creado.id;
     }
-  }
 
-  showModal.value = false;
-  await cargar();
+    // 2) Sincroniza los bonos/deducciones asignados
+    for (const id of form.value._quitadas || []) {
+      await api.del(`/asignaciones/${id}`);
+    }
+    for (const a of form.value.asignaciones || []) {
+      if (!a.id && a.concepto_id) {
+        await api.post('/asignaciones', {
+          empleado_id: empId,
+          concepto_id: a.concepto_id,
+          monto: a.monto || null,
+          porcentaje: a.porcentaje || null,
+        });
+      }
+    }
+
+    showModal.value = false;
+    await cargar();
+  } catch (e) {
+    alert(e.message || 'No se pudo guardar el empleado.');
+  }
 }
 
 onMounted(cargar);

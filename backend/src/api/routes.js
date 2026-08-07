@@ -147,40 +147,81 @@ api.get('/empleados', async (req, res) => {
   res.json(rows);
 });
 
-api.post('/empleados', async (req, res) => {
-  const b = req.body;
-  const obras = obrasDelBody(b);
-  const row = await one(
-    `INSERT INTO empleados
-       (empresa_id, numero_empleado, nombre, whatsapp, curp, rfc, nss,
-        departamento_id, puesto_id, obra_id, horario_id, salario_diario,
-        salario_diario_integrado, fecha_ingreso, dias_vacaciones_saldo)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15)
-     RETURNING *`,
-    [emp(req), b.numero_empleado, b.nombre, b.whatsapp, b.curp, b.rfc, b.nss,
-      b.departamento_id, b.puesto_id, obras[0] || null, b.horario_id, b.salario_diario || 0,
-      b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0]
+// Busca si un WhatsApp (por sus últimos 10 dígitos) ya está en uso por otro
+// empleado. Devuelve { nombre, empresa } o null. Si `exceptoId` se indica,
+// ignora a ese empleado (para permitir editar sin chocar consigo mismo).
+async function whatsappEnUso(whatsapp, exceptoId = null) {
+  const dig = String(whatsapp || '').replace(/\D/g, '').slice(-10);
+  if (!dig) return null;
+  return one(
+    `SELECT e.nombre, em.nombre AS empresa
+       FROM empleados e
+       LEFT JOIN empresas em ON em.id = e.empresa_id
+      WHERE right(regexp_replace(e.whatsapp, '\\D', '', 'g'), 10) = $1
+        AND ($2::int IS NULL OR e.id <> $2)
+      LIMIT 1`,
+    [dig, exceptoId]
   );
-  await sincronizarObras(row.id, obras);
-  res.status(201).json(row);
+}
+
+api.post('/empleados', async (req, res) => {
+  try {
+    const b = req.body;
+    const dup = await whatsappEnUso(b.whatsapp);
+    if (dup) {
+      return res.status(409).json({
+        error: `Ese WhatsApp ya está registrado como "${dup.nombre}"${dup.empresa ? ` en la empresa ${dup.empresa}` : ''}. Un mismo número no puede estar en dos empresas.`,
+      });
+    }
+    const obras = obrasDelBody(b);
+    const row = await one(
+      `INSERT INTO empleados
+         (empresa_id, numero_empleado, nombre, whatsapp, curp, rfc, nss,
+          departamento_id, puesto_id, obra_id, horario_id, salario_diario,
+          salario_diario_integrado, fecha_ingreso, dias_vacaciones_saldo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15)
+       RETURNING *`,
+      [emp(req), b.numero_empleado, b.nombre, b.whatsapp, b.curp, b.rfc, b.nss,
+        b.departamento_id, b.puesto_id, obras[0] || null, b.horario_id, b.salario_diario || 0,
+        b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0]
+    );
+    await sincronizarObras(row.id, obras);
+    res.status(201).json(row);
+  } catch (err) {
+    logger.error({ err }, 'No se pudo crear el empleado');
+    res.status(400).json({ error: err.message || 'No se pudo crear el empleado' });
+  }
 });
 
 api.put('/empleados/:id', async (req, res) => {
-  const b = req.body;
-  const obras = obrasDelBody(b);
-  const row = await one(
-    `UPDATE empleados SET
-        nombre=COALESCE($2,nombre), whatsapp=COALESCE($3,whatsapp),
-        departamento_id=$4, puesto_id=$5, obra_id=$6, horario_id=$7,
-        salario_diario=COALESCE($8,salario_diario),
-        salario_diario_integrado=COALESCE($9,salario_diario_integrado),
-        dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo)
-      WHERE id=$1 AND empresa_id=$11 RETURNING *`,
-    [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, obras[0] || null,
-      b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req)]
-  );
-  await sincronizarObras(row.id, obras);
-  res.json(row);
+  try {
+    const b = req.body;
+    if (b.whatsapp) {
+      const dup = await whatsappEnUso(b.whatsapp, Number(req.params.id));
+      if (dup) {
+        return res.status(409).json({
+          error: `Ese WhatsApp ya está registrado como "${dup.nombre}"${dup.empresa ? ` en la empresa ${dup.empresa}` : ''}. Un mismo número no puede estar en dos empresas.`,
+        });
+      }
+    }
+    const obras = obrasDelBody(b);
+    const row = await one(
+      `UPDATE empleados SET
+          nombre=COALESCE($2,nombre), whatsapp=COALESCE($3,whatsapp),
+          departamento_id=$4, puesto_id=$5, obra_id=$6, horario_id=$7,
+          salario_diario=COALESCE($8,salario_diario),
+          salario_diario_integrado=COALESCE($9,salario_diario_integrado),
+          dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo)
+        WHERE id=$1 AND empresa_id=$11 RETURNING *`,
+      [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, obras[0] || null,
+        b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req)]
+    );
+    await sincronizarObras(row.id, obras);
+    res.json(row);
+  } catch (err) {
+    logger.error({ err }, 'No se pudo actualizar el empleado');
+    res.status(400).json({ error: err.message || 'No se pudo actualizar el empleado' });
+  }
 });
 
 // Baja de empleado
