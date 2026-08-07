@@ -8,7 +8,33 @@ const form = ref(vacio());
 const error = ref('');
 const ok = ref('');
 
+// Edición de datos de una empresa existente
+const editForm = ref(null); // { id, nombre, rfc }
+const showEdit = ref(false);
+
 async function cargar() { empresas.value = await api.get('/admin/empresas'); }
+
+function editar(e) {
+  editForm.value = { id: e.id, nombre: e.nombre, rfc: e.rfc || '' };
+  showEdit.value = true;
+}
+
+async function guardarEdicion() {
+  error.value = ''; ok.value = '';
+  if (!editForm.value.nombre || !editForm.value.nombre.trim())
+    return (error.value = 'El nombre de la empresa es obligatorio.');
+  try {
+    await api.put(`/admin/empresas/${editForm.value.id}`, {
+      nombre: editForm.value.nombre,
+      rfc: editForm.value.rfc,
+    });
+    ok.value = `✅ Datos de la empresa actualizados.`;
+    showEdit.value = false;
+    await cargar();
+  } catch (e) {
+    error.value = e.message || 'No se pudo actualizar la empresa.';
+  }
+}
 
 async function crear() {
   error.value = ''; ok.value = '';
@@ -85,8 +111,23 @@ onMounted(cargar);
         <td>{{ e.rfc || '—' }}</td>
         <td>{{ e.empleados }}</td>
         <td>{{ e.admins }}</td>
-        <td><button class="danger" @click="eliminar(e)">🗑️ Eliminar</button></td>
+        <td>
+          <button class="ghost" @click="editar(e)">✏️ Editar</button>
+          <button class="danger" @click="eliminar(e)">🗑️ Eliminar</button>
+        </td>
       </tr>
     </tbody>
   </table>
+
+  <div v-if="showEdit" class="modal-bg" @click.self="showEdit = false">
+    <div class="modal">
+      <h3>Editar empresa</h3>
+      <div class="field"><label>Nombre de la empresa *</label><input v-model="editForm.nombre" /></div>
+      <div class="field"><label>RFC</label><input v-model="editForm.rfc" placeholder="XAXX010101000" /></div>
+      <div class="row" style="justify-content:end;margin-top:8px">
+        <button class="ghost" @click="showEdit = false">Cancelar</button>
+        <button @click="guardarEdicion">Guardar</button>
+      </div>
+    </div>
+  </div>
 </template>

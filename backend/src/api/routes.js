@@ -75,6 +75,23 @@ api.post('/admin/empresas', requireSuperadmin, async (req, res) => {
     res.status(400).json({ error: err.message || 'No se pudo crear la empresa' });
   }
 });
+// Editar datos de una empresa (nombre / RFC).
+api.put('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.nombre || !String(b.nombre).trim()) {
+      return res.status(400).json({ error: 'El nombre de la empresa es obligatorio.' });
+    }
+    const row = await one(
+      `UPDATE empresas SET nombre=$2, rfc=$3 WHERE id=$1 RETURNING *`,
+      [req.params.id, String(b.nombre).trim(), b.rfc ? String(b.rfc).trim() : null]
+    );
+    if (!row) return res.status(404).json({ error: 'Empresa no encontrada.' });
+    res.json(row);
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo actualizar la empresa' });
+  }
+});
 // Borrado DEFINITIVO de una empresa y todos sus datos.
 api.delete('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
   try {
