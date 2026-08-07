@@ -8,7 +8,7 @@ const guardado = ref(false);
 // Catálogos de la empresa: puestos y departamentos
 const puestos = ref([]);
 const departamentos = ref([]);
-const nuevoPuesto = ref({ nombre: '', salario_base: 0 });
+const nuevoPuesto = ref({ nombre: '' });
 const nuevoDepto = ref({ nombre: '' });
 
 async function cargar() {
@@ -29,12 +29,12 @@ async function guardar() {
 // ── Puestos ──
 async function agregarPuesto() {
   if (!nuevoPuesto.value.nombre.trim()) return;
-  await api.post('/puestos', nuevoPuesto.value);
-  nuevoPuesto.value = { nombre: '', salario_base: 0 };
+  await api.post('/puestos', { nombre: nuevoPuesto.value.nombre });
+  nuevoPuesto.value = { nombre: '' };
   await cargarCatalogos();
 }
 async function guardarPuesto(p) {
-  await api.put(`/puestos/${p.id}`, { nombre: p.nombre, salario_base: p.salario_base });
+  await api.put(`/puestos/${p.id}`, { nombre: p.nombre });
 }
 async function eliminarPuesto(p) {
   if (confirm(`¿Eliminar el puesto "${p.nombre}"? Los empleados que lo tengan quedarán sin puesto.`)) {
@@ -103,19 +103,17 @@ onMounted(cargar);
     <h3 style="margin:0 0 4px">Puestos</h3>
     <p style="color:#667;font-size:13px;margin:0 0 12px">Los puestos disponibles para asignar a tus empleados.</p>
     <table>
-      <thead><tr><th>Nombre</th><th>Salario base</th><th></th></tr></thead>
+      <thead><tr><th>Nombre</th><th></th></tr></thead>
       <tbody>
         <tr v-for="p in puestos" :key="p.id">
           <td><input v-model="p.nombre" @change="guardarPuesto(p)" /></td>
-          <td><input type="number" v-model.number="p.salario_base" @change="guardarPuesto(p)" style="max-width:140px" /></td>
           <td><button class="danger" @click="eliminarPuesto(p)">Eliminar</button></td>
         </tr>
-        <tr v-if="!puestos.length"><td colspan="3" style="color:#667">Aún no hay puestos.</td></tr>
+        <tr v-if="!puestos.length"><td colspan="2" style="color:#667">Aún no hay puestos.</td></tr>
       </tbody>
     </table>
     <div class="row" style="margin-top:10px;align-items:end">
       <div class="field" style="margin:0;flex:1"><label>Nuevo puesto</label><input v-model="nuevoPuesto.nombre" placeholder="Ej. Supervisor" @keyup.enter="agregarPuesto" /></div>
-      <div class="field" style="margin:0"><label>Salario base</label><input type="number" v-model.number="nuevoPuesto.salario_base" style="max-width:140px" /></div>
       <button @click="agregarPuesto">+ Agregar</button>
     </div>
   </div>
