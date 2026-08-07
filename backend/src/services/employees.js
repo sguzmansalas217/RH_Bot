@@ -1,4 +1,26 @@
-import { one, query } from '../db/pool.js';
+import { one, query, tx } from '../db/pool.js';
+
+// Borra por completo a un empleado y todo lo ligado a él (asistencias, permisos,
+// vacaciones, incapacidades, incidencias, préstamos, conceptos, obras, recibos y
+// mensajes). Así el número de WhatsApp queda libre para volver a registrarlo.
+// La mayoría de tablas caen en cascada; solo mensajes_wa y conversacion_estado
+// se limpian a mano (no tienen ON DELETE CASCADE).
+export async function eliminarEmpleado(empleadoId, empresaId) {
+  const id = Number(empleadoId);
+  if (!Number.isInteger(id) || id <= 0) throw new Error('Empleado inválido');
+  return tx(async (client) => {
+    const { rows } = await client.query(
+      `SELECT whatsapp FROM empleados WHERE id=$1 AND empresa_id=$2`,
+      [id, empresaId]
+    );
+    if (!rows.length) throw new Error('El empleado no existe');
+    const whatsapp = rows[0].whatsapp;
+    await client.query(`DELETE FROM mensajes_wa WHERE empleado_id=$1 OR whatsapp=$2`, [id, whatsapp]);
+    await client.query(`DELETE FROM conversacion_estado WHERE whatsapp=$1`, [whatsapp]);
+    await client.query(`DELETE FROM empleados WHERE id=$1 AND empresa_id=$2`, [id, empresaId]);
+    return { id };
+  });
+}
 
 // Deja solo los últimos 10 dígitos (número nacional de México), ignorando
 // prefijos de país, el "1" extra que agrega WhatsApp, espacios y guiones.

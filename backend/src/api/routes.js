@@ -4,6 +4,7 @@ import { crearEmpresaConAdmin, listarEmpresas, eliminarEmpresa } from '../servic
 import { listarTarifasISR, guardarTarifasISR, listarIMSS, guardarIMSS } from '../services/fiscal.js';
 import { one, query } from '../db/pool.js';
 import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
+import { eliminarEmpleado } from '../services/employees.js';
 import { resolver, pendientes, ausencias } from '../services/leaves.js';
 import { calcularNomina } from '../services/payroll/index.js';
 import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
@@ -241,12 +242,15 @@ api.put('/empleados/:id', async (req, res) => {
   }
 });
 
-// Baja de empleado
+// Baja de empleado: lo elimina por completo de todas las tablas para que su
+// número de WhatsApp quede libre y se pueda volver a registrar.
 api.delete('/empleados/:id', async (req, res) => {
-  await query(`UPDATE empleados SET activo=false, fecha_baja=CURRENT_DATE WHERE id=$1 AND empresa_id=$2`, [
-    req.params.id, emp(req),
-  ]);
-  res.json({ ok: true });
+  try {
+    res.json(await eliminarEmpleado(req.params.id, emp(req)));
+  } catch (err) {
+    logger.error({ err }, 'No se pudo dar de baja al empleado');
+    res.status(400).json({ error: err.message || 'No se pudo dar de baja al empleado' });
+  }
 });
 
 // ─── Catálogos ───

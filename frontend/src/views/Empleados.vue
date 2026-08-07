@@ -36,9 +36,19 @@ function editar(e) {
   showModal.value = true;
 }
 async function darBaja(e) {
-  if (confirm(`¿Dar de baja a ${e.nombre}?`)) {
-    await api.del(`/empleados/${e.id}`);
-    await cargar();
+  if (
+    confirm(
+      `¿Dar de baja a ${e.nombre}?\n\n` +
+        `Se eliminará por completo (asistencias, permisos, vacaciones, recibos e ` +
+        `historial). Su número de WhatsApp quedará libre para volver a registrarlo.`
+    )
+  ) {
+    try {
+      await api.del(`/empleados/${e.id}`);
+      await cargar();
+    } catch (err) {
+      alert(err.message || 'No se pudo dar de baja al empleado.');
+    }
   }
 }
 
