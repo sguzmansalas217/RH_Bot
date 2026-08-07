@@ -18,6 +18,20 @@ function minDelDia(date) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+// Devuelve el horario { entrada, salida } que aplica a `date` para el empleado.
+// Usa el horario por día (dias_horario) si está configurado; si no, cae al
+// modo simple (hora_entrada/hora_salida cuando ese día es laboral).
+function horarioDelDia(empleado, date) {
+  const dow = date.getDay(); // 0=Dom .. 6=Sáb
+  const dh = empleado.dias_horario;
+  if (dh && dh[dow] && dh[dow].entrada && dh[dow].salida) return dh[dow];
+  const laborales = empleado.dias_laborales || [];
+  if (laborales.includes(dow) && empleado.hora_entrada) {
+    return { entrada: empleado.hora_entrada, salida: empleado.hora_salida };
+  }
+  return null; // día de descanso
+}
+
 const hoyLocal = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
@@ -43,9 +57,10 @@ export async function registrarEntrada(empleado, lat, lon) {
   const ahora = new Date(); // hora OFICIAL del servidor
   const fecha = hoyLocal();
 
-  // Retardo respecto a hora_entrada + tolerancia
+  // Retardo respecto a la hora de entrada del día + tolerancia
+  const hd = horarioDelDia(empleado, ahora);
   let retardo = 0;
-  const entradaProg = horaAMin(empleado.hora_entrada);
+  const entradaProg = horaAMin(hd?.entrada || empleado.hora_entrada);
   if (entradaProg != null) {
     const tol = empresa?.tolerancia_retardo_min ?? 10;
     retardo = Math.max(0, minDelDia(ahora) - (entradaProg + tol));
@@ -106,12 +121,20 @@ export async function registrarSalida(empleado, lat, lon) {
   let horas = (ahora - entrada) / 3_600_000 - comidaMin / 60;
   horas = Math.max(0, Math.round(horas * 100) / 100);
 
-  const jornada = Number(empresa?.horas_jornada ?? 8);
+  // Jornada del día: si hay horario del día, es (salida - entrada) - comida;
+  // si no, la jornada general de la empresa.
+  const hd = horarioDelDia(empleado, ahora);
+  const entProg = horaAMin(hd?.entrada);
+  const salProg = horaAMin(hd?.salida);
+  let jornada = Number(empresa?.horas_jornada ?? 8);
+  if (entProg != null && salProg != null) {
+    jornada = Math.max(0, (salProg - entProg) / 60 - comidaMin / 60);
+  }
   const horasExtra = Math.max(0, Math.round((horas - jornada) * 100) / 100);
 
-  // Salida anticipada respecto a hora_salida
+  // Salida anticipada respecto a la hora de salida del día
   let anticipada = 0;
-  const salidaProg = horaAMin(empleado.hora_salida);
+  const salidaProg = salProg ?? horaAMin(empleado.hora_salida);
   if (salidaProg != null) anticipada = Math.max(0, salidaProg - minDelDia(ahora));
 
   const actualizada = await one(

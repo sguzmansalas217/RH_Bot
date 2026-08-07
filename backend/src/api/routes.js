@@ -221,20 +221,40 @@ api.delete('/puestos/:id', async (req, res) => {
   await query(`DELETE FROM puestos WHERE id=$1 AND empresa_id=$2`, [req.params.id, emp(req)]);
   res.json({ ok: true });
 });
+// Normaliza el cuerpo de un horario. Si viene `dias_horario` (horario por día),
+// deriva de él los días laborales y una hora de entrada/salida representativa
+// (para compatibilidad con el modo simple y consultas legadas).
+function normalizaHorario(b) {
+  const dh = b.dias_horario && typeof b.dias_horario === 'object' ? b.dias_horario : null;
+  let dias = Array.isArray(b.dias_laborales) ? b.dias_laborales : [1, 2, 3, 4, 5, 6];
+  let entrada = b.hora_entrada || '08:00';
+  let salida = b.hora_salida || '17:00';
+  if (dh) {
+    const claves = Object.keys(dh)
+      .filter((k) => dh[k] && dh[k].entrada && dh[k].salida)
+      .map(Number)
+      .sort((a, c) => a - c);
+    dias = claves;
+    const rep = dh['1'] || (claves.length ? dh[claves[0]] : null); // lunes o el primer día
+    if (rep) { entrada = rep.entrada; salida = rep.salida; }
+  }
+  return { dh: dh ? JSON.stringify(dh) : null, dias, entrada, salida, comida: b.minutos_comida || 60 };
+}
+
 api.post('/horarios', async (req, res) => {
-  const b = req.body;
+  const h = normalizaHorario(req.body);
   res.status(201).json(await one(
-    `INSERT INTO horarios (empresa_id,nombre,hora_entrada,hora_salida,dias_laborales,minutos_comida)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [emp(req), b.nombre, b.hora_entrada, b.hora_salida, b.dias_laborales || [1,2,3,4,5,6], b.minutos_comida || 60]
+    `INSERT INTO horarios (empresa_id,nombre,hora_entrada,hora_salida,dias_laborales,minutos_comida,dias_horario)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [emp(req), req.body.nombre, h.entrada, h.salida, h.dias, h.comida, h.dh]
   ));
 });
 api.put('/horarios/:id', async (req, res) => {
-  const b = req.body;
+  const h = normalizaHorario(req.body);
   res.json(await one(
-    `UPDATE horarios SET nombre=$2, hora_entrada=$3, hora_salida=$4, dias_laborales=$5, minutos_comida=$6
-      WHERE id=$1 AND empresa_id=$7 RETURNING *`,
-    [req.params.id, b.nombre, b.hora_entrada, b.hora_salida, b.dias_laborales || [1,2,3,4,5,6], b.minutos_comida || 60, emp(req)]
+    `UPDATE horarios SET nombre=$2, hora_entrada=$3, hora_salida=$4, dias_laborales=$5, minutos_comida=$6, dias_horario=$7
+      WHERE id=$1 AND empresa_id=$8 RETURNING *`,
+    [req.params.id, req.body.nombre, h.entrada, h.salida, h.dias, h.comida, h.dh, emp(req)]
   ));
 });
 api.delete('/horarios/:id', async (req, res) => {

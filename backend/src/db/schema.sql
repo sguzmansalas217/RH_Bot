@@ -317,3 +317,9 @@ CREATE TABLE IF NOT EXISTS conversacion_estado (
 -- Preparado para "graduar" a una empresa a su propio número en el futuro.
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS wa_phone_id TEXT;
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS wa_token    TEXT;
+
+-- ─── Horario por día (opcional) ───────────────────────────────────────────
+-- Objeto JSON por día de la semana: { "1": {"entrada":"08:00","salida":"17:00"}, ... }
+-- Claves 0=Dom .. 6=Sáb. Los días ausentes son de descanso. Si está vacío,
+-- el horario usa la hora_entrada/hora_salida + dias_laborales (modo simple).
+ALTER TABLE horarios ADD COLUMN IF NOT EXISTS dias_horario JSONB;

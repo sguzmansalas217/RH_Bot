@@ -10,7 +10,7 @@ export function buscarPorWhatsapp(whatsapp) {
   // Compara por los últimos 10 dígitos en ambos lados → encuentra al empleado
   // sin importar cómo se haya guardado el número (con/sin 52, con/sin 1, con guiones).
   return one(
-    `SELECT e.*, h.hora_entrada, h.hora_salida, h.dias_laborales, h.minutos_comida,
+    `SELECT e.*, h.hora_entrada, h.hora_salida, h.dias_laborales, h.minutos_comida, h.dias_horario,
             o.nombre AS obra_nombre
        FROM empleados e
        LEFT JOIN horarios h ON h.id = e.horario_id
