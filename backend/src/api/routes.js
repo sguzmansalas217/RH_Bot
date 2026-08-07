@@ -201,8 +201,25 @@ for (const [ruta, tabla] of [['departamentos', 'departamentos'], ['puestos', 'pu
 api.post('/departamentos', async (req, res) => {
   res.status(201).json(await one(`INSERT INTO departamentos (empresa_id,nombre) VALUES ($1,$2) RETURNING *`, [emp(req), req.body.nombre]));
 });
+api.put('/departamentos/:id', async (req, res) => {
+  res.json(await one(`UPDATE departamentos SET nombre=$2 WHERE id=$1 AND empresa_id=$3 RETURNING *`, [req.params.id, req.body.nombre, emp(req)]));
+});
+api.delete('/departamentos/:id', async (req, res) => {
+  await query(`UPDATE empleados SET departamento_id=NULL WHERE departamento_id=$1`, [req.params.id]);
+  await query(`DELETE FROM departamentos WHERE id=$1 AND empresa_id=$2`, [req.params.id, emp(req)]);
+  res.json({ ok: true });
+});
 api.post('/puestos', async (req, res) => {
   res.status(201).json(await one(`INSERT INTO puestos (empresa_id,nombre,salario_base) VALUES ($1,$2,$3) RETURNING *`, [emp(req), req.body.nombre, req.body.salario_base || 0]));
+});
+api.put('/puestos/:id', async (req, res) => {
+  const b = req.body;
+  res.json(await one(`UPDATE puestos SET nombre=$2, salario_base=$3 WHERE id=$1 AND empresa_id=$4 RETURNING *`, [req.params.id, b.nombre, b.salario_base || 0, emp(req)]));
+});
+api.delete('/puestos/:id', async (req, res) => {
+  await query(`UPDATE empleados SET puesto_id=NULL WHERE puesto_id=$1`, [req.params.id]);
+  await query(`DELETE FROM puestos WHERE id=$1 AND empresa_id=$2`, [req.params.id, emp(req)]);
+  res.json({ ok: true });
 });
 api.post('/horarios', async (req, res) => {
   const b = req.body;
