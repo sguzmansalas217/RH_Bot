@@ -14,9 +14,15 @@ const showEdit = ref(false);
 
 async function cargar() { empresas.value = await api.get('/admin/empresas'); }
 
-function editar(e) {
-  editForm.value = { id: e.id, nombre: e.nombre, rfc: e.rfc || '' };
-  showEdit.value = true;
+async function editar(e) {
+  error.value = ''; ok.value = '';
+  try {
+    // Trae la configuración completa de la empresa
+    editForm.value = await api.get(`/admin/empresas/${e.id}`);
+    showEdit.value = true;
+  } catch (err) {
+    error.value = err.message || 'No se pudieron cargar los datos de la empresa.';
+  }
 }
 
 async function guardarEdicion() {
@@ -24,10 +30,7 @@ async function guardarEdicion() {
   if (!editForm.value.nombre || !editForm.value.nombre.trim())
     return (error.value = 'El nombre de la empresa es obligatorio.');
   try {
-    await api.put(`/admin/empresas/${editForm.value.id}`, {
-      nombre: editForm.value.nombre,
-      rfc: editForm.value.rfc,
-    });
+    await api.put(`/admin/empresas/${editForm.value.id}`, editForm.value);
     ok.value = `✅ Datos de la empresa actualizados.`;
     showEdit.value = false;
     await cargar();
@@ -120,10 +123,32 @@ onMounted(cargar);
   </table>
 
   <div v-if="showEdit" class="modal-bg" @click.self="showEdit = false">
-    <div class="modal">
+    <div class="modal" style="width:min(640px,100%)">
       <h3>Editar empresa</h3>
-      <div class="field"><label>Nombre de la empresa *</label><input v-model="editForm.nombre" /></div>
-      <div class="field"><label>RFC</label><input v-model="editForm.rfc" placeholder="XAXX010101000" /></div>
+
+      <h4 style="margin:8px 0 6px">Datos generales</h4>
+      <div class="grid2">
+        <div class="field"><label>Nombre de la empresa *</label><input v-model="editForm.nombre" /></div>
+        <div class="field"><label>RFC</label><input v-model="editForm.rfc" placeholder="XAXX010101000" /></div>
+      </div>
+
+      <h4 style="margin:14px 0 6px">Jornada y asistencia</h4>
+      <div class="grid2">
+        <div class="field"><label>Horas de jornada (por día)</label><input type="number" v-model.number="editForm.horas_jornada" /></div>
+        <div class="field"><label>Días de la semana laboral</label><input type="number" v-model.number="editForm.dias_semana_laboral" /></div>
+        <div class="field"><label>Tolerancia de retardo (minutos)</label><input type="number" v-model.number="editForm.tolerancia_retardo_min" /></div>
+      </div>
+
+      <h4 style="margin:14px 0 6px">Horas extra y primas</h4>
+      <div class="grid2">
+        <div class="field"><label>Factor horas extra dobles</label><input type="number" step="0.1" v-model.number="editForm.factor_hora_extra_doble" /></div>
+        <div class="field"><label>Factor horas extra triples</label><input type="number" step="0.1" v-model.number="editForm.factor_hora_extra_triple" /></div>
+        <div class="field"><label>Prima dominical</label><input type="number" step="0.01" v-model.number="editForm.prima_dominical_pct" /></div>
+        <div class="field"><label>Prima vacacional</label><input type="number" step="0.01" v-model.number="editForm.prima_vacacional_pct" /></div>
+        <div class="field"><label>Días de aguinaldo</label><input type="number" v-model.number="editForm.dias_aguinaldo" /></div>
+      </div>
+
+      <p v-if="error" style="color:#c0392b">{{ error }}</p>
       <div class="row" style="justify-content:end;margin-top:8px">
         <button class="ghost" @click="showEdit = false">Cancelar</button>
         <button @click="guardarEdicion">Guardar</button>

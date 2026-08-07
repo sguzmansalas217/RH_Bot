@@ -76,7 +76,13 @@ api.post('/admin/empresas', requireSuperadmin, async (req, res) => {
     res.status(400).json({ error: err.message || 'No se pudo crear la empresa' });
   }
 });
-// Editar datos de una empresa (nombre / RFC).
+// Datos completos de una empresa (para editar como súper-admin).
+api.get('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
+  const row = await one(`SELECT * FROM empresas WHERE id=$1`, [req.params.id]);
+  if (!row) return res.status(404).json({ error: 'Empresa no encontrada.' });
+  res.json(row);
+});
+// Editar TODA la configuración de una empresa como súper-admin.
 api.put('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
   try {
     const b = req.body || {};
@@ -84,8 +90,22 @@ api.put('/admin/empresas/:id', requireSuperadmin, async (req, res) => {
       return res.status(400).json({ error: 'El nombre de la empresa es obligatorio.' });
     }
     const row = await one(
-      `UPDATE empresas SET nombre=$2, rfc=$3 WHERE id=$1 RETURNING *`,
-      [req.params.id, String(b.nombre).trim(), b.rfc ? String(b.rfc).trim() : null]
+      `UPDATE empresas SET
+          nombre=$2,
+          rfc=$3,
+          horas_jornada=COALESCE($4,horas_jornada),
+          dias_semana_laboral=COALESCE($5,dias_semana_laboral),
+          tolerancia_retardo_min=COALESCE($6,tolerancia_retardo_min),
+          factor_hora_extra_doble=COALESCE($7,factor_hora_extra_doble),
+          factor_hora_extra_triple=COALESCE($8,factor_hora_extra_triple),
+          prima_dominical_pct=COALESCE($9,prima_dominical_pct),
+          prima_vacacional_pct=COALESCE($10,prima_vacacional_pct),
+          dias_aguinaldo=COALESCE($11,dias_aguinaldo)
+        WHERE id=$1 RETURNING *`,
+      [req.params.id, String(b.nombre).trim(), b.rfc ? String(b.rfc).trim() : null,
+        b.horas_jornada, b.dias_semana_laboral, b.tolerancia_retardo_min,
+        b.factor_hora_extra_doble, b.factor_hora_extra_triple,
+        b.prima_dominical_pct, b.prima_vacacional_pct, b.dias_aguinaldo]
     );
     if (!row) return res.status(404).json({ error: 'Empresa no encontrada.' });
     res.json(row);
