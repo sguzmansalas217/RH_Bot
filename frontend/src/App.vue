@@ -6,6 +6,7 @@ import Empresas from './views/Empresas.vue';
 import TablasFiscales from './views/TablasFiscales.vue';
 import Obras from './views/Obras.vue';
 import Asistencias from './views/Asistencias.vue';
+import Bitacora from './views/Bitacora.vue';
 import Aprobaciones from './views/Aprobaciones.vue';
 import Ausencias from './views/Ausencias.vue';
 import Nomina from './views/Nomina.vue';
@@ -30,6 +31,7 @@ const vistas = {
   obras: Obras,
   horarios: Horarios,
   asistencias: Asistencias,
+  bitacora: Bitacora,
   aprobaciones: Aprobaciones,
   ausencias: Ausencias,
   nomina: Nomina,
@@ -43,6 +45,7 @@ const menuAdmin = [
   ['obras', '📍 Obras / Geocercas'],
   ['horarios', '🕗 Horarios'],
   ['asistencias', '🕐 Asistencias'],
+  ['bitacora', '📋 Bitácora'],
   ['aprobaciones', '✅ Aprobaciones'],
   ['ausencias', '🏖️ Ausencias'],
   ['nomina', '💰 Nómina'],

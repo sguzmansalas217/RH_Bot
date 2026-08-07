@@ -427,14 +427,16 @@ api.delete('/obras/:id', async (req, res) => {
 
 // ─── Asistencias / incidencias ───
 api.get('/asistencias', async (req, res) => {
-  const { desde, hasta } = req.query;
+  const { desde, hasta, empleado } = req.query;
+  const empId = empleado ? Number(empleado) : null;
   const { rows } = await query(
     `SELECT a.*, e.nombre AS empleado, o.nombre AS obra
        FROM asistencias a JOIN empleados e ON e.id=a.empleado_id
        LEFT JOIN obras o ON o.id=a.obra_id
       WHERE e.empresa_id=$1 AND a.fecha BETWEEN $2 AND $3
+        AND ($4::int IS NULL OR a.empleado_id = $4)
       ORDER BY a.fecha DESC, e.nombre`,
-    [emp(req), desde || '2000-01-01', hasta || '2999-12-31']
+    [emp(req), desde || '2000-01-01', hasta || '2999-12-31', empId]
   );
   res.json(rows);
 });
