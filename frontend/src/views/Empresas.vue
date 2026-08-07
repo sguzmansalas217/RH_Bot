@@ -126,27 +126,19 @@ onMounted(cargar);
     <div class="modal" style="width:min(640px,100%)">
       <h3>Editar empresa</h3>
 
-      <h4 style="margin:8px 0 6px">Datos generales</h4>
       <div class="grid2">
         <div class="field"><label>Nombre de la empresa *</label><input v-model="editForm.nombre" /></div>
         <div class="field"><label>RFC</label><input v-model="editForm.rfc" placeholder="XAXX010101000" /></div>
       </div>
 
-      <h4 style="margin:14px 0 6px">Jornada y asistencia</h4>
-      <div class="grid2">
-        <div class="field"><label>Horas de jornada (por día)</label><input type="number" v-model.number="editForm.horas_jornada" /></div>
-        <div class="field"><label>Días de la semana laboral</label><input type="number" v-model.number="editForm.dias_semana_laboral" /></div>
-        <div class="field"><label>Tolerancia de retardo (minutos)</label><input type="number" v-model.number="editForm.tolerancia_retardo_min" /></div>
+      <h4 v-if="editForm.admin" style="margin:16px 0 8px">Administrador (con quién inicia sesión)</h4>
+      <div v-if="editForm.admin" class="grid2">
+        <div class="field"><label>Nombre del admin</label><input v-model="editForm.admin.nombre" /></div>
+        <div class="field"><label>WhatsApp del admin</label><input v-model="editForm.admin.whatsapp" placeholder="5214491234567" /></div>
+        <div class="field"><label>Correo *</label><input v-model="editForm.admin.email" /></div>
+        <div class="field"><label>Contraseña nueva</label><input v-model="editForm.admin.password" placeholder="Déjalo vacío para no cambiarla" /></div>
       </div>
-
-      <h4 style="margin:14px 0 6px">Horas extra y primas</h4>
-      <div class="grid2">
-        <div class="field"><label>Factor horas extra dobles</label><input type="number" step="0.1" v-model.number="editForm.factor_hora_extra_doble" /></div>
-        <div class="field"><label>Factor horas extra triples</label><input type="number" step="0.1" v-model.number="editForm.factor_hora_extra_triple" /></div>
-        <div class="field"><label>Prima dominical</label><input type="number" step="0.01" v-model.number="editForm.prima_dominical_pct" /></div>
-        <div class="field"><label>Prima vacacional</label><input type="number" step="0.01" v-model.number="editForm.prima_vacacional_pct" /></div>
-        <div class="field"><label>Días de aguinaldo</label><input type="number" v-model.number="editForm.dias_aguinaldo" /></div>
-      </div>
+      <p v-else style="color:var(--muted)">Esta empresa no tiene administrador registrado.</p>
 
       <p v-if="error" style="color:#c0392b">{{ error }}</p>
       <div class="row" style="justify-content:end;margin-top:8px">

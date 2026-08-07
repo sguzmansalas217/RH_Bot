@@ -92,6 +92,71 @@ export async function crearEmpresaConAdmin({
 }
 
 /**
+ * Trae una empresa con su administrador principal (el primero que se creó),
+ * para la pantalla de edición del súper-admin.
+ */
+export async function obtenerEmpresaConAdmin(empresaId) {
+  const { rows: er } = await pool.query(
+    `SELECT id, nombre, rfc FROM empresas WHERE id=$1`, [empresaId]
+  );
+  if (!er.length) return null;
+  const { rows: ar } = await pool.query(
+    `SELECT id, nombre, email, whatsapp FROM usuarios_admin
+      WHERE empresa_id=$1 ORDER BY id LIMIT 1`, [empresaId]
+  );
+  return { ...er[0], admin: ar[0] || null };
+}
+
+/**
+ * Actualiza los datos de una empresa (nombre, RFC) y de su administrador
+ * principal (nombre, correo, WhatsApp y, opcionalmente, contraseña). Todo en
+ * una transacción. La contraseña solo se cambia si viene con valor.
+ */
+export async function actualizarEmpresaConAdmin(empresaId, { nombre, rfc, admin }) {
+  if (!nombre?.trim()) throw new Error('Falta el nombre de la empresa');
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const er = await client.query(
+      `UPDATE empresas SET nombre=$2, rfc=$3 WHERE id=$1 RETURNING id, nombre, rfc`,
+      [empresaId, nombre.trim(), rfc?.trim() || null]
+    );
+    if (!er.rows.length) throw new Error('La empresa no existe');
+
+    if (admin?.id) {
+      if (!admin.email?.trim()) throw new Error('El correo del administrador es obligatorio');
+      if (admin.password) {
+        const hash = await bcrypt.hash(admin.password, 10);
+        await client.query(
+          `UPDATE usuarios_admin SET nombre=$2, email=$3, whatsapp=$4, password_hash=$5
+            WHERE id=$1 AND empresa_id=$6`,
+          [admin.id, admin.nombre?.trim() || 'Administrador', admin.email.trim().toLowerCase(),
+            admin.whatsapp?.trim() || null, hash, empresaId]
+        );
+      } else {
+        await client.query(
+          `UPDATE usuarios_admin SET nombre=$2, email=$3, whatsapp=$4
+            WHERE id=$1 AND empresa_id=$5`,
+          [admin.id, admin.nombre?.trim() || 'Administrador', admin.email.trim().toLowerCase(),
+            admin.whatsapp?.trim() || null, empresaId]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    return er.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.code === '23505') throw new Error('Ya existe un usuario con ese correo');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Elimina DEFINITIVAMENTE una empresa y TODOS sus datos (empleados, obras,
  * asistencias, solicitudes, nómina, mensajes, admins, catálogos). Borrado
  * explícito hijo→padre en una transacción, sin depender de ON DELETE CASCADE.
