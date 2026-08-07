@@ -19,7 +19,8 @@ import { one } from '../db/pool.js';
 import { guardarArchivo } from '../services/files.js';
 import { manejarComandoAdmin } from './admin-commands.js';
 
-const MENU = `👋 Soy tu asistente de RH. Puedes escribirme naturalmente, por ejemplo:
+const menuTexto = (empresa) =>
+  `👋 Soy el asistente de RH${empresa ? ` de *${empresa}*` : ''}. Puedes escribirme naturalmente, por ejemplo:
 • *Llegué* / *Entrada* — marcar entrada
 • *Ya me voy* / *Salida* — marcar salida
 • *Necesito permiso mañana*
@@ -267,12 +268,12 @@ export function crearRouter(channel) {
 
       case 'saludo':
       case 'ayuda':
-        return responder(to, `Hola ${empleado.nombre.split(' ')[0]} 👋\n\n${MENU}`);
+        return responder(to, `Hola ${empleado.nombre.split(' ')[0]} 👋\n\n${menuTexto(empleado.empresa_nombre)}`);
 
       default:
         return responder(
           to,
-          ia.respuesta_sugerida || `No entendí bien 🤔.\n\n${MENU}`
+          ia.respuesta_sugerida || `No entendí bien 🤔.\n\n${menuTexto(empleado.empresa_nombre)}`
         );
     }
   }
