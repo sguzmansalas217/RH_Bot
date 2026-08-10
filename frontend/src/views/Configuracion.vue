@@ -93,6 +93,16 @@ onMounted(cargar);
       <div class="field"><label>Días de aguinaldo</label><input type="number" v-model.number="form.dias_aguinaldo" /></div>
     </div>
 
+    <h3 style="margin:18px 0 8px">Privacidad</h3>
+    <label class="switch">
+      <input type="checkbox" v-model="form.mostrar_sueldo_empleado" />
+      <span>Permitir que los empleados consulten su <strong>sueldo</strong> por WhatsApp</span>
+    </label>
+    <p style="color:#667;font-size:13px;margin:6px 0 0">
+      Si lo desactivas, el bot no les dirá cuánto van a cobrar ni su estimado de nómina.
+      Seguirán pudiendo consultar sus días y horas trabajadas, vacaciones y estatus de solicitudes.
+    </p>
+
     <div class="row" style="justify-content:end;margin-top:12px">
       <button @click="guardar">Guardar cambios</button>
     </div>
@@ -138,3 +148,8 @@ onMounted(cargar);
     </div>
   </div>
 </template>
+
+<style scoped>
+.switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.switch input { width: 18px; height: 18px; cursor: pointer; }
+</style>

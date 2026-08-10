@@ -323,3 +323,8 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS wa_token    TEXT;
 -- Claves 0=Dom .. 6=Sáb. Los días ausentes son de descanso. Si está vacío,
 -- el horario usa la hora_entrada/hora_salida + dias_laborales (modo simple).
 ALTER TABLE horarios ADD COLUMN IF NOT EXISTS dias_horario JSONB;
+
+-- ─── ¿Los empleados pueden ver su sueldo por el bot? ───────────────────────
+-- Si está en false, el bot NO les dice sueldo ni estimado de cobro; solo
+-- información de días/horas trabajadas, vacaciones y estatus de solicitudes.
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS mostrar_sueldo_empleado BOOLEAN NOT NULL DEFAULT true;

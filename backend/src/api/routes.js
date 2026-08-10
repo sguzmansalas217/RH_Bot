@@ -393,10 +393,12 @@ api.put('/empresa', async (req, res) => {
         factor_hora_extra_triple=COALESCE($6,factor_hora_extra_triple),
         prima_dominical_pct=COALESCE($7,prima_dominical_pct),
         dias_aguinaldo=COALESCE($8,dias_aguinaldo),
-        prima_vacacional_pct=COALESCE($9,prima_vacacional_pct)
+        prima_vacacional_pct=COALESCE($9,prima_vacacional_pct),
+        mostrar_sueldo_empleado=COALESCE($10,mostrar_sueldo_empleado)
       WHERE id=$1 RETURNING *`,
     [emp(req), b.nombre, b.horas_jornada, b.tolerancia_retardo_min, b.factor_hora_extra_doble,
-      b.factor_hora_extra_triple, b.prima_dominical_pct, b.dias_aguinaldo, b.prima_vacacional_pct]
+      b.factor_hora_extra_triple, b.prima_dominical_pct, b.dias_aguinaldo, b.prima_vacacional_pct,
+      typeof b.mostrar_sueldo_empleado === 'boolean' ? b.mostrar_sueldo_empleado : null]
   ));
 });
 

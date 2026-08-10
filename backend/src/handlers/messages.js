@@ -19,15 +19,16 @@ import { one } from '../db/pool.js';
 import { guardarArchivo } from '../services/files.js';
 import { manejarComandoAdmin } from './admin-commands.js';
 
-const menuTexto = (empresa) =>
+// mostrarSueldo=false → oculta la opción de consultar sueldo/estimado de cobro.
+const menuTexto = (empresa, mostrarSueldo = true) =>
   `👋 Soy el asistente de RH${empresa ? ` de *${empresa}*` : ''}. Puedes escribirme naturalmente, por ejemplo:
 • *Llegué* / *Entrada* — marcar entrada
 • *Ya me voy* / *Salida* — marcar salida
 • *Necesito permiso mañana*
 • *¿Cuántas vacaciones me quedan?*
 • *Quiero vacaciones del 5 al 10 de agosto*
-• *Tengo incapacidad*
-• *¿Cuánto voy a cobrar esta semana?*
+• *Tengo incapacidad*${mostrarSueldo ? `
+• *¿Cuánto voy a cobrar esta semana?*` : ''}
 • *¿Cuántas horas extra llevo?*
 • *¿Cuántas horas trabajé del 1 al 15?*
 • *¿Ya aprobaron mi permiso?*`;
@@ -232,6 +233,13 @@ export function crearRouter(channel) {
       }
 
       case 'consultar_nomina': {
+        // El dueño puede ocultar el sueldo/estimado de cobro a sus empleados.
+        if (!empleado.mostrar_sueldo_empleado) {
+          return responder(
+            to,
+            'ℹ️ La información de sueldo no está disponible por este medio. Con gusto puedo darte tus *días* y *horas trabajadas*; para dudas sobre tu pago acude a Recursos Humanos.'
+          );
+        }
         const empresa = await one(`SELECT * FROM empresas WHERE id=$1`, [empleado.empresa_id]);
         const est = await estimarSemana(empleado, empresa);
         return responder(
@@ -268,12 +276,12 @@ export function crearRouter(channel) {
 
       case 'saludo':
       case 'ayuda':
-        return responder(to, `Hola ${empleado.nombre.split(' ')[0]} 👋\n\n${menuTexto(empleado.empresa_nombre)}`);
+        return responder(to, `Hola ${empleado.nombre.split(' ')[0]} 👋\n\n${menuTexto(empleado.empresa_nombre, empleado.mostrar_sueldo_empleado)}`);
 
       default:
         return responder(
           to,
-          ia.respuesta_sugerida || `No entendí bien 🤔.\n\n${menuTexto(empleado.empresa_nombre)}`
+          ia.respuesta_sugerida || `No entendí bien 🤔.\n\n${menuTexto(empleado.empresa_nombre, empleado.mostrar_sueldo_empleado)}`
         );
     }
   }

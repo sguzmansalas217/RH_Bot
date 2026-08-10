@@ -33,7 +33,8 @@ export function buscarPorWhatsapp(whatsapp) {
   // sin importar cómo se haya guardado el número (con/sin 52, con/sin 1, con guiones).
   return one(
     `SELECT e.*, h.hora_entrada, h.hora_salida, h.dias_laborales, h.minutos_comida, h.dias_horario,
-            o.nombre AS obra_nombre, em.nombre AS empresa_nombre
+            o.nombre AS obra_nombre, em.nombre AS empresa_nombre,
+            em.mostrar_sueldo_empleado
        FROM empleados e
        LEFT JOIN horarios h ON h.id = e.horario_id
        LEFT JOIN obras o ON o.id = e.obra_id
