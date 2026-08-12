@@ -193,12 +193,13 @@ api.post('/empleados', async (req, res) => {
       `INSERT INTO empleados
          (empresa_id, numero_empleado, nombre, whatsapp, curp, rfc, nss,
           departamento_id, puesto_id, obra_id, horario_id, salario_diario,
-          salario_diario_integrado, fecha_ingreso, dias_vacaciones_saldo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15)
+          salario_diario_integrado, fecha_ingreso, dias_vacaciones_saldo, isr_manual)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE($14,CURRENT_DATE),$15,$16)
        RETURNING *`,
       [emp(req), b.numero_empleado, b.nombre, b.whatsapp, b.curp, b.rfc, b.nss,
         b.departamento_id, b.puesto_id, obras[0] || null, b.horario_id, b.salario_diario || 0,
-        b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0]
+        b.salario_diario_integrado || 0, b.fecha_ingreso, b.dias_vacaciones_saldo || 0,
+        b.isr_manual != null && b.isr_manual !== '' ? b.isr_manual : null]
     );
     await sincronizarObras(row.id, obras);
     res.status(201).json(row);
@@ -226,10 +227,12 @@ api.put('/empleados/:id', async (req, res) => {
           departamento_id=$4, puesto_id=$5, obra_id=$6, horario_id=$7,
           salario_diario=COALESCE($8,salario_diario),
           salario_diario_integrado=COALESCE($9,salario_diario_integrado),
-          dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo)
+          dias_vacaciones_saldo=COALESCE($10,dias_vacaciones_saldo),
+          isr_manual=$12
         WHERE id=$1 AND empresa_id=$11 RETURNING *`,
       [req.params.id, b.nombre, b.whatsapp, b.departamento_id, b.puesto_id, obras[0] || null,
-        b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req)]
+        b.horario_id, b.salario_diario, b.salario_diario_integrado, b.dias_vacaciones_saldo, emp(req),
+        b.isr_manual != null && b.isr_manual !== '' ? b.isr_manual : null]
     );
     await sincronizarObras(row.id, obras);
     res.json(row);
@@ -394,11 +397,13 @@ api.put('/empresa', async (req, res) => {
         prima_dominical_pct=COALESCE($7,prima_dominical_pct),
         dias_aguinaldo=COALESCE($8,dias_aguinaldo),
         prima_vacacional_pct=COALESCE($9,prima_vacacional_pct),
-        mostrar_sueldo_empleado=COALESCE($10,mostrar_sueldo_empleado)
+        mostrar_sueldo_empleado=COALESCE($10,mostrar_sueldo_empleado),
+        isr_modo=COALESCE($11,isr_modo)
       WHERE id=$1 RETURNING *`,
     [emp(req), b.nombre, b.horas_jornada, b.tolerancia_retardo_min, b.factor_hora_extra_doble,
       b.factor_hora_extra_triple, b.prima_dominical_pct, b.dias_aguinaldo, b.prima_vacacional_pct,
-      typeof b.mostrar_sueldo_empleado === 'boolean' ? b.mostrar_sueldo_empleado : null]
+      typeof b.mostrar_sueldo_empleado === 'boolean' ? b.mostrar_sueldo_empleado : null,
+      b.isr_modo === 'manual' || b.isr_modo === 'tabla' ? b.isr_modo : null]
   ));
 });
 

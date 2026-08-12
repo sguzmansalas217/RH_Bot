@@ -328,3 +328,8 @@ ALTER TABLE horarios ADD COLUMN IF NOT EXISTS dias_horario JSONB;
 -- Si está en false, el bot NO les dice sueldo ni estimado de cobro; solo
 -- información de días/horas trabajadas, vacaciones y estatus de solicitudes.
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS mostrar_sueldo_empleado BOOLEAN NOT NULL DEFAULT true;
+
+-- ─── Origen del ISR: 'tabla' = tarifa del SAT (superadmin) · 'manual' = monto fijo por empleado ─
+ALTER TABLE empresas  ADD COLUMN IF NOT EXISTS isr_modo   TEXT NOT NULL DEFAULT 'tabla';
+-- Monto de ISR (por periodo) que se descuenta cuando la empresa está en modo 'manual'.
+ALTER TABLE empleados ADD COLUMN IF NOT EXISTS isr_manual NUMERIC(12,2);

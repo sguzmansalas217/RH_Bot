@@ -147,7 +147,11 @@ async function calcularRecibo(emp, empresa, periodo) {
     .filter((d) => d.naturaleza === 'percepcion' && d.gravable !== false)
     .reduce((s, d) => s + d.importe, 0);
 
-  const isr = await calcularISR(baseGravable, periodo.tipo === 'quincenal' ? 'mensual' : 'semanal');
+  // ISR: desde la tarifa del SAT (modo 'tabla') o monto fijo por empleado (modo 'manual').
+  // El monto manual solo se aplica si hubo percepciones gravables (no cobra ISR a quien no trabajó).
+  const isr = empresa.isr_modo === 'manual'
+    ? (baseGravable > 0 ? round(Number(emp.isr_manual || 0)) : 0)
+    : await calcularISR(baseGravable, periodo.tipo === 'quincenal' ? 'mensual' : 'semanal');
   // Guarda el % efectivo de ISR (impuesto / base gravable) para mostrarlo en el recibo.
   deduc('ISR', isr, baseGravable > 0 ? round((isr / baseGravable) * 100) : null);
 
@@ -238,7 +242,9 @@ export async function estimarSemana(emp, empresa) {
   const sueldo = Number(emp.salario_diario) * Number(r.dias);
   const extra = Number(r.extra) * tarifaHora * 2;
   const bruto = sueldo + extra;
-  const isr = await calcularISR(bruto, 'semanal');
+  const isr = empresa?.isr_modo === 'manual'
+    ? (bruto > 0 ? round(Number(emp.isr_manual || 0)) : 0)
+    : await calcularISR(bruto, 'semanal');
   return {
     dias: Number(r.dias),
     horas_extra: Number(r.extra),

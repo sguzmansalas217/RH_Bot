@@ -93,6 +93,19 @@ onMounted(cargar);
       <div class="field"><label>Días de aguinaldo</label><input type="number" v-model.number="form.dias_aguinaldo" /></div>
     </div>
 
+    <h3 style="margin:18px 0 8px">ISR (retención de impuesto)</h3>
+    <div class="field">
+      <label>¿De dónde sale el ISR de cada empleado?</label>
+      <select v-model="form.isr_modo">
+        <option value="tabla">Calcularlo con la tabla del SAT (automático)</option>
+        <option value="manual">Manual: yo defino el monto en cada empleado</option>
+      </select>
+    </div>
+    <p style="color:#667;font-size:13px;margin:0">
+      <b>Automático:</b> el sistema usa la tarifa oficial de ISR según lo que gana cada quien.<br />
+      <b>Manual:</b> en la ficha de cada empleado capturas cuánto ISR (en pesos) descontarle por semana.
+    </p>
+
     <h3 style="margin:18px 0 8px">Privacidad</h3>
     <label class="switch">
       <input type="checkbox" v-model="form.mostrar_sueldo_empleado" />

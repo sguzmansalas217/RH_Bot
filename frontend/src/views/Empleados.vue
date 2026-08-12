@@ -6,18 +6,21 @@ const empleados = ref([]);
 const catalogos = ref({ puestos: [], departamentos: [], obras: [], horarios: [] });
 const conceptos = ref([]);       // catálogo de bonos/deducciones de la empresa
 const asignaciones = ref([]);    // todas las asignaciones (para precargar al editar)
+const empresa = ref({});         // config de la empresa (para saber el modo de ISR)
 const showModal = ref(false);
 const form = ref({});
 
 async function cargar() {
-  const [empleados_, puestos, departamentos, obras, horarios, conceptos_, asignaciones_] = await Promise.all([
+  const [empleados_, puestos, departamentos, obras, horarios, conceptos_, asignaciones_, empresa_] = await Promise.all([
     api.get('/empleados'), api.get('/puestos'), api.get('/departamentos'),
     api.get('/obras'), api.get('/horarios'), api.get('/conceptos'), api.get('/asignaciones'),
+    api.get('/empresa'),
   ]);
   empleados.value = empleados_;
   catalogos.value = { puestos, departamentos, obras, horarios };
   conceptos.value = conceptos_;
   asignaciones.value = asignaciones_;
+  empresa.value = empresa_ || {};
 }
 
 function nuevo() {
@@ -155,6 +158,13 @@ onMounted(cargar);
         </div>
         <div class="field"><label>Salario diario</label><input type="number" v-model.number="form.salario_diario" /></div>
         <div class="field"><label>Días de vacaciones</label><input type="number" v-model.number="form.dias_vacaciones_saldo" /></div>
+        <div v-if="empresa.isr_modo === 'manual'" class="field" style="grid-column:1/-1">
+          <label>ISR manual por semana ($)</label>
+          <input type="number" v-model.number="form.isr_manual" placeholder="0" />
+          <p style="color:#667;font-size:12px;margin:4px 0 0">
+            Este es el ISR (en pesos) que se le descontará cada semana. Tu empresa está configurada en <b>ISR manual</b>.
+          </p>
+        </div>
       </div>
 
       <!-- ── Bonos y deducciones de este empleado ── -->
