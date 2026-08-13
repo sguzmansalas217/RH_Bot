@@ -80,11 +80,39 @@ onMounted(cargar);
     <p style="color:#667;font-size:13px;margin:0">Después de la hora de entrada + estos minutos, se cuenta como retardo. Arriba de la jornada, cuenta como horas extra.</p>
 
     <h3 style="margin:18px 0 8px">Horas extra</h3>
-    <div class="grid2">
-      <div class="field"><label>Factor horas extra dobles</label><input type="number" step="0.1" v-model.number="form.factor_hora_extra_doble" /></div>
-      <div class="field"><label>Factor horas extra triples</label><input type="number" step="0.1" v-model.number="form.factor_hora_extra_triple" /></div>
-    </div>
-    <p style="color:#667;font-size:13px;margin:0">Las primeras 9 h extra a la semana se pagan al factor doble (2.0) y el excedente al triple (3.0), según la ley.</p>
+    <label class="switch">
+      <input type="checkbox" v-model="form.pagar_horas_extra" />
+      <span>Pagar horas extra</span>
+    </label>
+    <p style="color:#667;font-size:13px;margin:6px 0 0">Si lo desactivas, las horas trabajadas de más se siguen registrando, pero <b>no se pagan</b> en la nómina.</p>
+
+    <template v-if="form.pagar_horas_extra !== false">
+      <div class="field" style="margin-top:12px">
+        <label>Mínimo de minutos para pagar hora extra</label>
+        <input type="number" min="0" v-model.number="form.minutos_minimos_extra" placeholder="0" />
+        <p style="color:#667;font-size:13px;margin:4px 0 0">
+          A partir de estos minutos por encima de la jornada ya se paga como extra, y se paga
+          <b>proporcional</b> (ej. si pones <b>40</b> y trabajó 40 min de más, se le pagan 40 min = 0.67 de hora).
+          Deja <b>0</b> para pagar cualquier minuto extra.
+        </p>
+      </div>
+
+      <div class="field" style="margin-top:12px">
+        <label>¿Cómo se pagan las horas extra?</label>
+        <select v-model="form.regla_horas_extra">
+          <option value="ley">Según la ley: primeras 9 h/semana al doble, lo demás al triple</option>
+          <option value="doble">Todas al doble</option>
+          <option value="triple">Todas al triple</option>
+        </select>
+        <p style="color:#667;font-size:13px;margin:4px 0 0">Lo recomendado (Ley Federal del Trabajo) es la primera opción.</p>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Factor pago doble</label><input type="number" step="0.1" v-model.number="form.factor_hora_extra_doble" /></div>
+        <div class="field"><label>Factor pago triple</label><input type="number" step="0.1" v-model.number="form.factor_hora_extra_triple" /></div>
+      </div>
+      <p style="color:#667;font-size:13px;margin:0">El factor es cuántas veces vale la hora normal (2.0 = doble, 3.0 = triple).</p>
+    </template>
 
     <h3 style="margin:18px 0 8px">Prestaciones (valores decimales: 0.25 = 25%)</h3>
     <div class="grid2">

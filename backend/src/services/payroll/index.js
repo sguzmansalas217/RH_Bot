@@ -104,13 +104,23 @@ async function calcularRecibo(emp, empresa, periodo) {
     percep('Día de descanso', Number(emp.salario_diario) * diasDescansoPagados, diasDescansoPagados);
   }
 
-  // Horas extra (dobles las primeras 9/sem, triples el excedente)
-  const heDobles = Math.min(totalHorasExtra, 9);
-  const heTriples = Math.max(0, totalHorasExtra - 9);
-  const importeExtra =
-    heDobles * tarifaHora * Number(empresa.factor_hora_extra_doble || 2) +
-    heTriples * tarifaHora * Number(empresa.factor_hora_extra_triple || 3);
-  percep('Horas extra', importeExtra, totalHorasExtra);
+  // Horas extra. Solo se pagan si la empresa lo tiene activado.
+  // Regla: 'ley' = 9 h dobles + resto triples · 'doble' = todas dobles · 'triple' = todas triples.
+  if (empresa.pagar_horas_extra !== false && totalHorasExtra > 0) {
+    const fDoble = Number(empresa.factor_hora_extra_doble || 2);
+    const fTriple = Number(empresa.factor_hora_extra_triple || 3);
+    let heDobles, heTriples;
+    if (empresa.regla_horas_extra === 'doble') {
+      heDobles = totalHorasExtra; heTriples = 0;
+    } else if (empresa.regla_horas_extra === 'triple') {
+      heDobles = 0; heTriples = totalHorasExtra;
+    } else {
+      heDobles = Math.min(totalHorasExtra, 9);
+      heTriples = Math.max(0, totalHorasExtra - 9);
+    }
+    const importeExtra = heDobles * tarifaHora * fDoble + heTriples * tarifaHora * fTriple;
+    percep('Horas extra', importeExtra, totalHorasExtra);
+  }
 
   // Prima dominical
   if (domingosTrabajados > 0) {
@@ -240,7 +250,12 @@ export async function estimarSemana(emp, empresa) {
   const jornada = Number(empresa?.horas_jornada || 8);
   const tarifaHora = Number(emp.salario_diario) / jornada;
   const sueldo = Number(emp.salario_diario) * Number(r.dias);
-  const extra = Number(r.extra) * tarifaHora * 2;
+  const factorExtra = empresa?.regla_horas_extra === 'triple'
+    ? Number(empresa?.factor_hora_extra_triple || 3)
+    : Number(empresa?.factor_hora_extra_doble || 2);
+  const extra = empresa?.pagar_horas_extra === false
+    ? 0
+    : Number(r.extra) * tarifaHora * factorExtra;
   const bruto = sueldo + extra;
   const isr = empresa?.isr_modo === 'manual'
     ? (bruto > 0 ? round(Number(emp.isr_manual || 0)) : 0)

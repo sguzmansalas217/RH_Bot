@@ -130,7 +130,11 @@ export async function registrarSalida(empleado, lat, lon) {
   if (entProg != null && salProg != null) {
     jornada = Math.max(0, (salProg - entProg) / 60 - comidaMin / 60);
   }
-  const horasExtra = Math.max(0, Math.round((horas - jornada) * 100) / 100);
+  let horasExtra = Math.max(0, Math.round((horas - jornada) * 100) / 100);
+  // Mínimo de minutos extra para que cuenten (config de la empresa). Debajo del
+  // umbral no se paga; arriba, se paga proporcional a la hora (fracción real).
+  const minExtra = Number(empresa?.minutos_minimos_extra ?? 0);
+  if (horasExtra * 60 < minExtra) horasExtra = 0;
 
   // Salida anticipada respecto a la hora de salida del día
   let anticipada = 0;

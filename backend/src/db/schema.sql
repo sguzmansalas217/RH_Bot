@@ -333,3 +333,12 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS mostrar_sueldo_empleado BOOLEAN NO
 ALTER TABLE empresas  ADD COLUMN IF NOT EXISTS isr_modo   TEXT NOT NULL DEFAULT 'tabla';
 -- Monto de ISR (por periodo) que se descuenta cuando la empresa está en modo 'manual'.
 ALTER TABLE empleados ADD COLUMN IF NOT EXISTS isr_manual NUMERIC(12,2);
+
+-- ─── Horas extra: configuración del dueño ──────────────────────────────────
+-- ¿Se pagan horas extra? Si está en false, no se pagan (aunque se registren).
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS pagar_horas_extra BOOLEAN NOT NULL DEFAULT true;
+-- Mínimo de minutos extra (por día) para que empiecen a contar como pagables.
+-- Ej. 40 → solo se paga si se pasó 40 min o más de la jornada; se paga proporcional.
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS minutos_minimos_extra INT NOT NULL DEFAULT 0;
+-- Regla de pago: 'ley' = 9 h dobles + resto triples (LFT) · 'doble' = todas dobles · 'triple' = todas triples
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS regla_horas_extra TEXT NOT NULL DEFAULT 'ley';
