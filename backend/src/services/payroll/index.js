@@ -147,8 +147,13 @@ async function calcularRecibo(emp, empresa, periodo) {
   }
 
   // ── DEDUCCIONES automáticas ──
-  // Descuento por faltas
-  if (faltas > 0) deduc('Descuento por falta', Number(emp.salario_diario) * faltas, faltas);
+  // Descuento por faltas: el día no trabajado YA no se paga (el sueldo solo cuenta
+  // días trabajados). Esto es un castigo EXTRA opcional que decide el patrón, como
+  // % del salario diario por cada falta. 0% = sin descuento extra (no se cobra doble).
+  const pctFalta = Number(empresa.descuento_falta_pct || 0) / 100;
+  if (faltas > 0 && pctFalta > 0) {
+    deduc('Descuento por falta', Number(emp.salario_diario) * faltas * pctFalta, faltas);
+  }
   // Descuento por retardos (proporcional a los minutos)
   if (totalRetardosMin > 0) deduc('Descuento por retardo', (tarifaHora / 60) * totalRetardosMin, totalRetardosMin);
 

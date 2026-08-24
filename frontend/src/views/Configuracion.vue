@@ -79,6 +79,17 @@ onMounted(cargar);
     </div>
     <p style="color:#667;font-size:13px;margin:0">Después de la hora de entrada + estos minutos, se cuenta como retardo. Arriba de la jornada, cuenta como horas extra.</p>
 
+    <div class="field" style="margin-top:12px">
+      <label>Descuento por día de falta (%)</label>
+      <input type="number" min="0" max="100" step="1" v-model.number="form.descuento_falta_pct" placeholder="0" />
+      <p style="color:#667;font-size:13px;margin:4px 0 0">
+        El día que el empleado falta <b>ya no se le paga</b>. Este es un descuento
+        <b>adicional</b> por cada falta, como % del salario de un día.
+        Deja <b>0</b> para no descontar de más (recomendado). Pon <b>100</b> para
+        descontar un día completo por cada falta.
+      </p>
+    </div>
+
     <h3 style="margin:18px 0 8px">Horas extra</h3>
     <label class="switch">
       <input type="checkbox" v-model="form.pagar_horas_extra" />

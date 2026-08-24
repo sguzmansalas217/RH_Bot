@@ -342,3 +342,9 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS pagar_horas_extra BOOLEAN NOT NULL
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS minutos_minimos_extra INT NOT NULL DEFAULT 0;
 -- Regla de pago: 'ley' = 9 h dobles + resto triples (LFT) · 'doble' = todas dobles · 'triple' = todas triples
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS regla_horas_extra TEXT NOT NULL DEFAULT 'ley';
+
+-- ─── Descuento por falta: castigo EXTRA opcional que decide el patrón ───────
+-- El día no trabajado ya no se paga (el sueldo solo cuenta días trabajados).
+-- Esto es un descuento ADICIONAL por cada día de falta, como % del salario diario.
+-- 0 = sin descuento extra (recomendado) · 100 = se descuenta un día completo por falta.
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS descuento_falta_pct NUMERIC(5,2) NOT NULL DEFAULT 0;

@@ -401,7 +401,8 @@ api.put('/empresa', async (req, res) => {
         isr_modo=COALESCE($11,isr_modo),
         pagar_horas_extra=COALESCE($12,pagar_horas_extra),
         minutos_minimos_extra=COALESCE($13,minutos_minimos_extra),
-        regla_horas_extra=COALESCE($14,regla_horas_extra)
+        regla_horas_extra=COALESCE($14,regla_horas_extra),
+        descuento_falta_pct=COALESCE($15,descuento_falta_pct)
       WHERE id=$1 RETURNING *`,
     [emp(req), b.nombre, b.horas_jornada, b.tolerancia_retardo_min, b.factor_hora_extra_doble,
       b.factor_hora_extra_triple, b.prima_dominical_pct, b.dias_aguinaldo, b.prima_vacacional_pct,
@@ -409,7 +410,8 @@ api.put('/empresa', async (req, res) => {
       b.isr_modo === 'manual' || b.isr_modo === 'tabla' ? b.isr_modo : null,
       typeof b.pagar_horas_extra === 'boolean' ? b.pagar_horas_extra : null,
       b.minutos_minimos_extra != null && b.minutos_minimos_extra !== '' ? b.minutos_minimos_extra : null,
-      ['ley', 'doble', 'triple'].includes(b.regla_horas_extra) ? b.regla_horas_extra : null]
+      ['ley', 'doble', 'triple'].includes(b.regla_horas_extra) ? b.regla_horas_extra : null,
+      b.descuento_falta_pct != null && b.descuento_falta_pct !== '' ? b.descuento_falta_pct : null]
   ));
 });
 
