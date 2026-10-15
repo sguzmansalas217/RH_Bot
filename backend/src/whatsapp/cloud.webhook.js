@@ -28,6 +28,12 @@ export function registrarWebhook(app, channel) {
         { tieneMensaje: !!msg, tieneEstado: !!entry?.statuses, campo: req.body?.entry?.[0]?.changes?.[0]?.field },
         '📩 Webhook POST recibido de Meta'
       );
+      // Meta avisa por aquí si un mensaje enviado no se entregó (p.ej. 131047: fuera de la ventana de 24 h).
+      for (const st of entry?.statuses || []) {
+        if (st.status === 'failed') {
+          logger.error({ to: st.recipient_id, errores: st.errors }, '❌ Meta no entregó un mensaje');
+        }
+      }
       if (!msg) return;
       const from = msg.from;
       logger.info({ from, tipo: msg.type }, '📩 Mensaje entrante por Cloud API');
@@ -54,7 +60,8 @@ export function registrarWebhook(app, channel) {
         normalized = {
           from,
           type: 'texto',
-          text: msg.text?.body || msg.button?.text || msg.interactive?.list_reply?.title || '',
+          text: msg.text?.body || msg.button?.text || msg.interactive?.list_reply?.title
+            || msg.interactive?.button_reply?.title || '',
           location: null,
           downloadMedia: null,
         };

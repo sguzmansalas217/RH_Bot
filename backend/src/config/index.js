@@ -47,6 +47,10 @@ export const config = {
       token: process.env.WA_CLOUD_TOKEN,
       phoneId: process.env.WA_CLOUD_PHONE_ID,
       verifyToken: process.env.WA_CLOUD_VERIFY_TOKEN,
+      // Plantilla aprobada (categoría Utilidad, una variable {{1}}) para avisar a quien
+      // no ha escrito en 24 h (dueño, admins). Vacío = solo texto libre.
+      templateAviso: process.env.WA_TEMPLATE_AVISO || '',
+      templateIdioma: process.env.WA_TEMPLATE_IDIOMA || 'es_MX',
     },
   },
 };
