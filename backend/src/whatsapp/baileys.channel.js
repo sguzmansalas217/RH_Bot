@@ -176,5 +176,8 @@ export function createBaileysChannel() {
     messageHandler = handler;
   }
 
-  return { start, onMessage, sendText, requestLocation, name: 'baileys' };
+  // Número del WhatsApp vinculado (ej. '5214491234567'), o null si no está conectado.
+  const numero = () => (sock?.user?.id ? fromJid(sock.user.id) : null);
+
+  return { start, onMessage, sendText, requestLocation, numero, name: 'baileys' };
 }

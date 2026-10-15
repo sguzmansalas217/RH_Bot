@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import QRCode from 'qrcode';
 import { api, getToken, setToken, clearToken, getRol, setRol } from './api.js';
 import Empleados from './views/Empleados.vue';
 import Empresas from './views/Empresas.vue';
@@ -24,6 +25,19 @@ const error = ref('');
 const cargando = ref(false);
 const verPassword = ref(false);
 const menuOpen = ref(false); // menú lateral abierto en móvil
+
+// Contacto por WhatsApp en el login: número del bot + QR que abre el chat.
+const contacto = ref(null);
+const qrContacto = ref('');
+onMounted(async () => {
+  if (logged.value) return;
+  try {
+    const c = await fetch('/api/contacto').then((r) => r.json());
+    if (!c?.numero) return;
+    contacto.value = c;
+    qrContacto.value = await QRCode.toDataURL(c.link, { margin: 1, width: 240, color: { dark: '#075e54', light: '#ffffff' } });
+  } catch { /* sin contacto: el login funciona igual */ }
+});
 
 const esSuper = computed(() => rol.value === 'superadmin');
 
@@ -114,6 +128,14 @@ function selectVista(key) {
           <li><span>✅</span> Aprobaciones y ausencias sin papeleo</li>
           <li><span>💰</span> Cálculo de nómina con ISR e IMSS</li>
         </ul>
+        <a v-if="contacto" class="contacto" :href="contacto.link" target="_blank" rel="noopener">
+          <img :src="qrContacto" alt="Código QR para escribirnos por WhatsApp" />
+          <div>
+            <small>¿Quieres Nexori RH en tu empresa?</small>
+            <b>📲 {{ contacto.legible }}</b>
+            <span>Escanea el código o toca aquí para escribirnos por WhatsApp</span>
+          </div>
+        </a>
       </div>
       <small class="brand-foot">© {{ new Date().getFullYear() }} Nexori System</small>
     </section>
@@ -149,6 +171,12 @@ function selectVista(key) {
           <span v-if="cargando" class="spinner"></span>
           {{ cargando ? 'Entrando…' : 'Entrar' }}
         </button>
+
+        <!-- En móvil el panel de marca se oculta: el contacto va debajo del formulario -->
+        <a v-if="contacto" class="contacto-movil" :href="contacto.link" target="_blank" rel="noopener">
+          ¿Quieres Nexori RH en tu empresa?<br />
+          <b>📲 Escríbenos al {{ contacto.legible }}</b>
+        </a>
       </form>
     </section>
   </div>

@@ -10,6 +10,7 @@ import { resolver, pendientes, ausencias } from '../services/leaves.js';
 import { calcularNomina } from '../services/payroll/index.js';
 import { asistenciaExcel, reciboPDF } from '../reports/reports.js';
 import { logger } from '../config/logger.js';
+import { config } from '../config/index.js';
 
 // Formatea una fecha a texto legible (ej. "5 de agosto de 2026").
 // Acepta objetos Date (como los devuelve node-postgres) o cadenas "YYYY-MM-DD".
@@ -60,6 +61,20 @@ async function notificarEmpleado(req, tipo, estatus, row, observaciones) {
 export const api = Router();
 
 api.post('/login', login);
+
+// Público: número de WhatsApp del bot para el bloque de contacto del login (número + QR).
+api.get('/contacto', (req, res) => {
+  const channel = req.app.get('channel');
+  const crudo = config.whatsapp.numeroPublico || channel?.numero?.() || '';
+  const d = String(crudo).replace(/\D/g, '');
+  if (d.length < 10) return res.json({ numero: null });
+  const diez = d.slice(-10);
+  res.json({
+    numero: diez,
+    legible: `${diez.slice(0, 3)} ${diez.slice(3, 6)} ${diez.slice(6)}`,
+    link: `https://wa.me/52${diez}?text=${encodeURIComponent('Hola, quiero una demo de Nexori RH')}`,
+  });
+});
 
 // Todo lo demás requiere token
 api.use(requireAuth);

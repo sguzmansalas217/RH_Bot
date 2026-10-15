@@ -37,6 +37,8 @@ export const config = {
     // En redes corporativas con inspección SSL, Baileys no confía en el
     // certificado del proxy. Poner WHATSAPP_INSECURE_TLS=true lo omite (dev).
     insecureTLS: process.env.WHATSAPP_INSECURE_TLS === 'true',
+    // Número público de contacto (login y publicidad). Si está vacío se usa el del WhatsApp vinculado.
+    numeroPublico: process.env.WHATSAPP_NUMERO_PUBLICO || '',
     admins: (process.env.ADMIN_WHATSAPP || '')
       .split(',')
       .map((s) => s.trim())
