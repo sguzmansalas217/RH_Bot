@@ -20,6 +20,8 @@ const rol = ref(getRol());
 const email = ref('');
 const password = ref('');
 const error = ref('');
+const cargando = ref(false);
+const verPassword = ref(false);
 const menuOpen = ref(false); // menú lateral abierto en móvil
 
 const esSuper = computed(() => rol.value === 'superadmin');
@@ -61,7 +63,13 @@ const menu = computed(() =>
 const vista = ref(esSuper.value ? 'empresas' : 'empleados');
 
 async function login() {
+  if (cargando.value) return;
   error.value = '';
+  if (!email.value || !password.value) {
+    error.value = 'Ingresa tu correo y contraseña';
+    return;
+  }
+  cargando.value = true;
   try {
     const { token, usuario } = await api.post('/login', { email: email.value, password: password.value });
     setToken(token);
@@ -71,6 +79,8 @@ async function login() {
     logged.value = true;
   } catch (e) {
     error.value = 'Credenciales inválidas';
+  } finally {
+    cargando.value = false;
   }
 }
 function logout() {
@@ -86,14 +96,59 @@ function selectVista(key) {
 </script>
 
 <template>
-  <div v-if="!logged" class="login-wrap">
-    <div class="card login-box">
-      <h2>Panel RH</h2>
-      <div class="field"><label>Correo</label><input v-model="email" /></div>
-      <div class="field"><label>Contraseña</label><input type="password" v-model="password" @keyup.enter="login" /></div>
-      <p v-if="error" style="color:#c0392b">{{ error }}</p>
-      <button style="width:100%" @click="login">Entrar</button>
-    </div>
+  <div v-if="!logged" class="login-page">
+    <!-- Panel de marca (se oculta en móvil) -->
+    <section class="login-brand">
+      <div class="brand-top">
+        <span class="brand-logo">🤖</span>
+        <span class="brand-name">RH WhatsApp</span>
+      </div>
+      <div class="brand-body">
+        <h1>Gestiona a tu equipo desde un solo lugar</h1>
+        <p>Asistencias por WhatsApp, geocercas, ausencias y nómina, todo integrado.</p>
+        <ul class="brand-features">
+          <li><span>🕐</span> Registro de asistencias en tiempo real</li>
+          <li><span>📍</span> Control por obras y geocercas</li>
+          <li><span>✅</span> Aprobaciones y ausencias sin papeleo</li>
+          <li><span>💰</span> Cálculo de nómina con ISR e IMSS</li>
+        </ul>
+      </div>
+      <small class="brand-foot">© {{ new Date().getFullYear() }} RH WhatsApp</small>
+    </section>
+
+    <!-- Formulario -->
+    <section class="login-side">
+      <form class="login-form" @submit.prevent="login">
+        <div class="login-mobile-brand"><span class="brand-logo">🤖</span> RH WhatsApp</div>
+        <h2>Bienvenido 👋</h2>
+        <p class="login-sub">Inicia sesión para entrar al panel</p>
+
+        <div class="field">
+          <label for="login-email">Correo electrónico</label>
+          <div class="input-icon">
+            <span class="ico">✉️</span>
+            <input id="login-email" v-model="email" type="email" autocomplete="username" placeholder="tucorreo@empresa.com" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="login-pass">Contraseña</label>
+          <div class="input-icon">
+            <span class="ico">🔒</span>
+            <input id="login-pass" v-model="password" :type="verPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="••••••••" />
+            <button type="button" class="toggle-pass" @click="verPassword = !verPassword" :aria-label="verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+              {{ verPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="error" class="login-error">⚠️ {{ error }}</div>
+
+        <button type="submit" class="login-btn" :disabled="cargando">
+          <span v-if="cargando" class="spinner"></span>
+          {{ cargando ? 'Entrando…' : 'Entrar' }}
+        </button>
+      </form>
+    </section>
   </div>
 
   <div v-else class="shell">
