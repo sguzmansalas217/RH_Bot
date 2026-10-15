@@ -14,7 +14,7 @@ import {
  */
 
 const MENU =
-  `1️⃣ Quiero una *demo gratis*\n` +
+  `1️⃣ Quiero una *demo / prueba gratis*\n` +
   `2️⃣ *Precios* y promoción\n` +
   `3️⃣ ¿*Cómo funciona*?\n` +
   `4️⃣ Soy *empleado* de una empresa que usa Nexori RH`;
@@ -52,7 +52,7 @@ function detectarOpcion(texto) {
   if (/^4\b/.test(t) || /\b(soy empleado|trabajo en|trabajador|llegue|entrada|salida|ya me voy|permiso|vacaciones|incapacidad|checar)\b/.test(t)) return 'empleado';
   if (/^2\b/.test(t) || /\b(precio|precios|costo|cuesta|cuanto|tarifa|cotiza|cotizacion)\b/.test(t)) return 'precio';
   if (/^3\b/.test(t) || /\b(funciona|como es|informacion|info|detalles)\b/.test(t)) return 'funciona';
-  if (/^1\b/.test(t) || /\b(demo|promo|promocion|50|descuento|contratar|agendar|interesa|quiero)\b/.test(t)) return 'demo';
+  if (/^1\b/.test(t) || /\b(demo|demostracion|prueba|probar|promo|promocion|50|descuento|contratar|agendar|interesa|quiero)\b/.test(t)) return 'demo';
   return null;
 }
 
@@ -63,12 +63,15 @@ const legible = (n) => {
 };
 const linkWa = (n) => {
   const d = clave(n);
-  return /^\d{10}$/.test(d) ? `wa.me/52${d}` : '(sin número visible)';
+  return /^\d{10}$/.test(d) ? `https://wa.me/52${d}` : '(sin número visible)';
 };
 
 /** Avisa a los números del dueño del sistema. */
 async function avisarDueno(channel, texto) {
-  for (const n of await numerosDueno()) {
+  const propio = clave(channel.numero?.() || '');
+  const destinos = (await numerosDueno()).filter((n) => clave(n) !== propio);
+  if (!destinos.length) logger.warn('Prospecto nuevo pero no hay ADMIN_WHATSAPP (distinto al del bot) para avisar');
+  for (const n of destinos) {
     try {
       await channel.sendText(n, texto);
     } catch (err) {
@@ -109,16 +112,17 @@ export async function manejarProspecto(msg, estado, responder, channel) {
 
     await avisarDueno(
       channel,
-      `🆕 *Nuevo prospecto*\n` +
+      `🆕 *Nuevo cliente interesado — quiere ${p.interes === 'precio' ? 'cotización' : 'demo / prueba'}*\n\n` +
         `👤 ${p.nombre || '—'}\n🏢 ${p.empresa || '—'}\n👥 ${p.empleados ?? texto} empleados\n` +
-        `🎯 Interés: ${p.interes || 'demo'}\n📲 ${legible(from)} · ${linkWa(from)}\n` +
-        (p.primer_mensaje ? `💬 "${p.primer_mensaje}"\n` : '') +
-        `\nPara contestarle desde este número escribe:\n*r ${clave(from)} tu mensaje*`
+        `📲 ${legible(from)}\n` +
+        (p.primer_mensaje ? `💬 Primer mensaje: "${p.primer_mensaje}"\n` : '') +
+        `\n👉 Escríbele por WhatsApp para comenzar la prueba:\n${linkWa(from)}`
     );
     return responder(
       from,
-      `✅ ¡Listo, ${(p.nombre || '').split(' ')[0] || 'gracias'}! Ya tengo tus datos.\n\n` +
-        `En breve te escribimos por aquí para agendar tu *demo gratis de 15 minutos* y enviarte tu cotización. 🙌`
+      `✅ ¡Gracias, ${(p.nombre || '').split(' ')[0] || 'listo'}! Ya tengo tus datos.\n\n` +
+        `👨‍💼 *Un operador se pondrá en contacto contigo* por WhatsApp para hacer la prueba de Nexori RH ` +
+        `con tu empresa y enviarte tu cotización. 🙌`
     );
   }
 
@@ -165,7 +169,7 @@ export async function manejarProspecto(msg, estado, responder, channel) {
         from,
         (promo
           ? `🎉 ¡Claro! Las primeras 10 empresas tienen *50% de descuento el primer mes*.\n\n`
-          : `🙌 ¡Con gusto te muestro una demo gratis de 15 minutos!\n\n`) +
+          : `🙌 ¡Con gusto! Un operador te contactará para hacer la *prueba gratis* con tu empresa.\n\n`) +
           `Solo necesito 3 datos rápidos. ¿Cómo te llamas?`
       );
     }
