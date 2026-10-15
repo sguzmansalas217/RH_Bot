@@ -15,7 +15,7 @@ import {
 
 const MENU =
   `1️⃣ Quiero una *demo / prueba gratis*\n` +
-  `2️⃣ *Precios* y promoción\n` +
+  `2️⃣ *Precios* (desde $899 + IVA al mes)\n` +
   `3️⃣ ¿*Cómo funciona*?\n` +
   `4️⃣ Soy *empleado* de una empresa que usa Nexori RH`;
 
@@ -34,9 +34,13 @@ const COMO_FUNCIONA =
   `¿Te muestro una *demo gratis* de 15 minutos? Responde *1*.`;
 
 const PRECIO =
-  `💰 El precio depende del número de empleados, y te preparo una cotización exacta.\n\n` +
-  `🎉 Además, las *primeras 10 empresas* tienen *50% de descuento el primer mes*.\n\n` +
-  `Para cotizarte necesito 3 datos rápidos. ¿Cómo te llamas?`;
+  `💰 *Precio de Nexori RH:*\n` +
+  `• *$899 + IVA al mes* — incluye hasta *10 empleados*\n` +
+  `• *$59 + IVA al mes* por cada empleado adicional\n\n` +
+  `Ejemplo: con 25 empleados pagarías $899 + (15 × $59) = *$1,784 + IVA* al mes.\n\n` +
+  `🎉 Las *primeras 10 empresas* tienen *50% de descuento el primer mes*.\n` +
+  `Calcula tu precio en https://www.rhasitente.com/#precios\n\n` +
+  `Para hacerte la *prueba gratis* y tu cotización exacta necesito 3 datos rápidos. ¿Cómo te llamas?`;
 
 const EMPLEADO = (num) =>
   `👷 Este es el WhatsApp de asistencia de Nexori RH, pero tu número todavía *no está registrado*.\n\n` +

@@ -22,6 +22,7 @@
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#funciones">Funciones</a>
         <a href="#panel">El panel</a>
+        <a href="#precios">Precios</a>
         <a href="#preguntas">Preguntas</a>
       </nav>
       <div class="nav-btns">
@@ -192,13 +193,59 @@
     </div>
   </section>
 
+  <!-- ─── Precios ─── -->
+  <section id="precios" class="seccion gris">
+    <div class="contenedor">
+      <h2 class="titulo">Un precio simple, sin sorpresas</h2>
+      <p class="titulo-sub">Pagas por los empleados que usas, mes a mes.</p>
+      <div class="precios">
+        <div class="plan">
+          <span class="plan-tag">Plan único</span>
+          <div class="plan-precio"><span class="signo">$</span>899<small> /mes + IVA</small></div>
+          <p class="plan-incluye">Incluye hasta <b>10 empleados</b></p>
+          <div class="plan-extra">+ <b>$59</b> + IVA al mes por cada empleado adicional</div>
+          <ul class="plan-lista">
+            <li>✅ Asistencia por WhatsApp con geocercas</li>
+            <li>✅ Varias obras y sucursales</li>
+            <li>✅ Permisos, vacaciones e incapacidades</li>
+            <li>✅ Prenómina con ISR e IMSS y recibos en PDF</li>
+            <li>✅ Reportes en Excel y PDF</li>
+            <li>✅ Panel para RH y administradores</li>
+            <li>✅ Te ayudamos con el alta inicial</li>
+          </ul>
+        </div>
+
+        <div class="calc">
+          <h3>Calcula cuánto pagarías</h3>
+          <label for="calc-emp">¿Cuántos empleados tienes?</label>
+          <div class="calc-entrada">
+            <input id="calc-emp" type="range" min="1" max="200" value="25" />
+            <input id="calc-num" type="number" min="1" max="2000" value="25" aria-label="Número de empleados" />
+          </div>
+          <div class="calc-filas">
+            <div><span>Plan base (hasta 10 empleados)</span><b>$899.00</b></div>
+            <div><span class="js-calc-extra-txt">15 empleados adicionales × $59</span><b class="js-calc-extra">$885.00</b></div>
+            <div class="sub-total"><span>Subtotal mensual</span><b class="js-calc-sub">$1,784.00</b></div>
+            <div><span>IVA (16%)</span><b class="js-calc-iva">$285.44</b></div>
+            <div class="total"><span>Total al mes</span><b class="js-calc-total">$2,069.44</b></div>
+          </div>
+          <div class="calc-promo">
+            🎉 <b>Primer mes con 50% de descuento:</b> <span class="js-calc-promo">$1,034.72</span> IVA incluido
+            <small>Promoción válida para las primeras 10 empresas.</small>
+          </div>
+          <a href="#" class="btn btn-wa btn-grande js-wa calc-btn">💬 Quiero mi prueba gratis</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ─── Promoción ─── -->
   <section class="promo">
     <div class="contenedor promo-in">
       <div class="pct">50%</div>
       <div>
         <h2>de descuento el primer mes para las primeras 10 empresas</h2>
-        <p>Incluye prueba gratis y te ayudamos a dar de alta tus obras, horarios y empleados.</p>
+        <p>Por ejemplo, con 10 empleados tu primer mes queda en <b>$449.50 + IVA</b>. Incluye prueba gratis y te ayudamos a dar de alta tus obras, horarios y empleados.</p>
       </div>
       <a href="#" class="btn btn-blanco btn-grande js-wa">Aparta tu lugar →</a>
     </div>
@@ -214,7 +261,7 @@
       <details><summary>¿Calcula la nómina?</summary><p>Calcula la prenómina: sueldo por días trabajados, horas extra, bonos, préstamos y deducciones de ISR e IMSS, con recibos en PDF. Hoy no timbra el CFDI de nómina; la exportas para que tu contador o tu sistema de timbrado la timbre.</p></details>
       <details><summary>¿Puedo manejar varias obras o sucursales?</summary><p>Sí. Das de alta cada centro de trabajo con su ubicación y asignas a cada empleado a una o varias obras.</p></details>
       <details><summary>¿Mis datos están seguros?</summary><p>La información de cada empresa está separada y el panel requiere usuario y contraseña. Consulta nuestro <a href="/aviso-privacidad">aviso de privacidad</a>.</p></details>
-      <details><summary>¿Cuánto cuesta?</summary><p>Depende del número de empleados. Escríbenos por WhatsApp y te enviamos tu cotización; las primeras 10 empresas tienen 50% de descuento el primer mes.</p></details>
+      <details><summary>¿Cuánto cuesta?</summary><p><b>$899 + IVA al mes</b> e incluye hasta 10 empleados. Cada empleado adicional cuesta <b>$59 + IVA al mes</b>. Las primeras 10 empresas tienen 50% de descuento el primer mes. Usa la <a href="#precios">calculadora</a> para ver tu precio.</p></details>      <details><summary>¿Dan factura?</summary><p>Sí, los precios son más IVA y emitimos factura.</p></details>
     </div>
   </section>
 
