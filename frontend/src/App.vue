@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import QRCode from 'qrcode';
 import { api, getToken, setToken, clearToken, getRol, setRol } from './api.js';
 import Empleados from './views/Empleados.vue';
@@ -71,12 +71,33 @@ const menuAdmin = [
   ['incidencias', '⚠️ Incidencias'],
   ['configuracion', '⚙️ Configuración'],
 ];
+// Súper-admin: cuántos prospectos que dejaron sus datos siguen sin atender (contador del menú).
+const prospectosNuevos = ref(0);
+async function contarProspectos() {
+  if (!logged.value || !esSuper.value) return;
+  try {
+    const lista = await api.get('/admin/prospectos');
+    prospectosNuevos.value = lista.filter((p) => p.estatus === 'nuevo' && (p.nombre || p.empresa)).length;
+  } catch { /* el contador es opcional */ }
+}
+onMounted(contarProspectos);
+const timerProspectos = setInterval(contarProspectos, 60000);
+onUnmounted(() => clearInterval(timerProspectos));
+
 const menu = computed(() =>
   esSuper.value
-    ? [['empresas', '🏢 Empresas'], ['prospectos', '🎯 Prospectos'], ['tablas', '📊 Tablas ISR/IMSS']]
+    ? [
+        ['empresas', '🏢 Empresas'],
+        ['prospectos', `🎯 Prospectos${prospectosNuevos.value ? ` (${prospectosNuevos.value})` : ''}`],
+        ['tablas', '📊 Tablas ISR/IMSS'],
+      ]
     : menuAdmin
 );
-const vista = ref(esSuper.value ? 'empresas' : 'empleados');
+// Permite abrir una pestaña directo con ?vista=prospectos (link del aviso por WhatsApp).
+const vistaUrl = new URLSearchParams(location.search).get('vista');
+const vista = ref(
+  vistaUrl && menu.value.some(([k]) => k === vistaUrl) ? vistaUrl : esSuper.value ? 'empresas' : 'empleados'
+);
 
 async function login() {
   if (cargando.value) return;
@@ -91,8 +112,10 @@ async function login() {
     setToken(token);
     setRol(usuario?.rol);
     rol.value = usuario?.rol;
-    vista.value = esSuper.value ? 'empresas' : 'empleados';
+    vista.value = vistaUrl && menu.value.some(([k]) => k === vistaUrl)
+      ? vistaUrl : esSuper.value ? 'empresas' : 'empleados';
     logged.value = true;
+    contarProspectos();
   } catch (e) {
     error.value = 'Credenciales inválidas';
   } finally {
@@ -108,6 +131,7 @@ function logout() {
 function selectVista(key) {
   vista.value = key;
   menuOpen.value = false;
+  if (key === 'prospectos') contarProspectos();
 }
 </script>
 
