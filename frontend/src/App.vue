@@ -100,8 +100,8 @@ function selectVista(key) {
     <!-- Panel de marca (se oculta en móvil) -->
     <section class="login-brand">
       <div class="brand-top">
-        <span class="brand-logo">🤖</span>
-        <span class="brand-name">RH WhatsApp</span>
+        <span class="brand-logo">N</span>
+        <span class="brand-name">Nexori RH</span>
       </div>
       <div class="brand-body">
         <h1>Gestiona a tu equipo desde un solo lugar</h1>
@@ -113,13 +113,13 @@ function selectVista(key) {
           <li><span>💰</span> Cálculo de nómina con ISR e IMSS</li>
         </ul>
       </div>
-      <small class="brand-foot">© {{ new Date().getFullYear() }} RH WhatsApp</small>
+      <small class="brand-foot">© {{ new Date().getFullYear() }} Nexori System</small>
     </section>
 
     <!-- Formulario -->
     <section class="login-side">
       <form class="login-form" @submit.prevent="login">
-        <div class="login-mobile-brand"><span class="brand-logo">🤖</span> RH WhatsApp</div>
+        <div class="login-mobile-brand"><span class="brand-logo">N</span> Nexori RH</div>
         <h2>Bienvenido 👋</h2>
         <p class="login-sub">Inicia sesión para entrar al panel</p>
 
@@ -155,14 +155,14 @@ function selectVista(key) {
     <!-- Barra superior (solo visible en móvil) -->
     <header class="topbar">
       <button class="hamburger" @click="menuOpen = true" aria-label="Abrir menú">☰</button>
-      <span class="topbar-title">🤖 RH WhatsApp</span>
+      <span class="topbar-title"><span class="side-logo">N</span> Nexori RH</span>
     </header>
 
     <!-- Fondo oscuro al abrir el menú en móvil -->
     <div v-if="menuOpen" class="overlay" @click="menuOpen = false"></div>
 
     <nav class="sidebar" :class="{ open: menuOpen }">
-      <h1>🤖 RH WhatsApp</h1>
+      <h1><span class="side-logo">N</span> Nexori RH</h1>
       <a v-for="[key, label] in menu" :key="key" :class="{ active: vista === key }" @click="selectVista(key)">{{ label }}</a>
       <a style="margin-top:20px;opacity:.8" @click="logout">🚪 Salir</a>
     </nav>

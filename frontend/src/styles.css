@@ -48,7 +48,14 @@ th { background: #fafafa; color: var(--muted); font-weight: 600; }
 .brand-top { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
 .brand-logo {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.18); font-size: 22px;
+  width: 40px; height: 40px; border-radius: 12px; background: #fff; color: var(--primary-dark);
+  font-size: 22px; font-weight: 800;
+}
+/* Logo "N" en menú lateral y barra móvil */
+.side-logo {
+  display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;
+  width: 28px; height: 28px; margin-right: 6px; border-radius: 8px;
+  background: #fff; color: var(--primary-dark); font-size: 16px; font-weight: 800;
 }
 .brand-body { max-width: 460px; }
 .brand-body h1 { font-size: 34px; line-height: 1.2; margin: 0 0 14px; }
