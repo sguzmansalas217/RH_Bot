@@ -18,6 +18,18 @@ import { estimarSemana } from '../services/payroll/index.js';
 import { one } from '../db/pool.js';
 import { guardarArchivo } from '../services/files.js';
 import { manejarComandoAdmin } from './admin-commands.js';
+import { manejarProspecto, manejarComandoDueno } from './prospectos.js';
+import { esDueno } from '../services/prospectos.js';
+
+// Ayuda para el administrador de una empresa que escribe al bot y no es empleado.
+const menuAdmin = (nombre) =>
+  `👋 Hola${nombre ? ` ${nombre.split(' ')[0]}` : ''}, eres *administrador* en Nexori RH. Puedes escribirme:
+• *pendientes* — ver solicitudes por autorizar
+• *aprobar permiso 12* / *rechazar permiso 12*
+• *aprobar vacacion 8* / *rechazar vacacion 8*
+• *aprobar incapacidad 5* / *rechazar incapacidad 5*
+
+Todo lo demás (empleados, obras, nómina, reportes) lo manejas en tu panel: https://rhasitente.com`;
 
 // mostrarSueldo=false → oculta la opción de consultar sueldo/estimado de cobro.
 const menuTexto = (empresa, mostrarSueldo = true) =>
@@ -51,25 +63,27 @@ export function crearRouter(channel) {
     const { from } = msg;
     logger.debug({ from, type: msg.type }, 'Mensaje entrante');
 
+    // ¿Es el dueño del sistema contestando a un prospecto (r <número> <mensaje>)?
+    if (msg.type === 'texto' && (await esDueno(from))) {
+      if (await manejarComandoDueno(from, msg.text, responder, channel)) return;
+    }
+
     // ¿Es administrador de alguna empresa aprobando/consultando por WhatsApp?
-    if (msg.type === 'texto') {
-      const admin = await adminPorWhatsapp(from);
-      if (admin?.empresa_id) {
-        const manejado = await manejarComandoAdmin(admin, from, msg.text, responder, channel);
-        if (manejado) return;
-      }
+    const admin = await adminPorWhatsapp(from);
+    if (msg.type === 'texto' && admin?.empresa_id) {
+      const manejado = await manejarComandoAdmin(admin, from, msg.text, responder, channel);
+      if (manejado) return;
     }
 
     const empleado = await buscarPorWhatsapp(from);
+    const estado = await getEstado(from);
     if (!empleado) {
       await logMensaje(from, null, 'entrante', msg.text, null, null, msg.type);
-      return responder(
-        from,
-        '⚠️ Tu número no está registrado como empleado. Contacta a Recursos Humanos.'
-      );
+      // Administrador que no es empleado → su menú de comandos.
+      if (admin?.empresa_id) return responder(from, menuAdmin(admin.nombre));
+      // Número desconocido → se le ofrece el servicio (prospecto).
+      return manejarProspecto(msg, estado, responder, channel);
     }
-
-    const estado = await getEstado(from);
 
     // ─── Mensajes de UBICACIÓN (flujo entrada/salida) ───
     if (msg.type === 'ubicacion') {

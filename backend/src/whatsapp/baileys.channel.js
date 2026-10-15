@@ -102,7 +102,13 @@ export function createBaileysChannel() {
   }
 
   function normalize(msg) {
-    const from = fromJid(msg.key.remoteJid);
+    // Con números que no te tienen agregado, WhatsApp puede mandar un JID "@lid"
+    // (identificador oculto). Si viene el número real (senderPn) se usa ese;
+    // si no, se conserva el JID completo para poder contestarle.
+    const jid = msg.key.remoteJid || '';
+    const from = jid.endsWith('@lid')
+      ? (msg.key.senderPn ? fromJid(msg.key.senderPn) : jid)
+      : fromJid(jid);
     const m = msg.message;
     const content = m.ephemeralMessage?.message || m;
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { login, requireAuth, requireSuperadmin } from './auth.js';
 import { crearEmpresaConAdmin, listarEmpresas, eliminarEmpresa, obtenerEmpresaConAdmin, actualizarEmpresaConAdmin } from '../services/tenants.js';
 import { listarTarifasISR, guardarTarifasISR, listarIMSS, guardarIMSS } from '../services/fiscal.js';
+import { listarProspectos, actualizarProspecto } from '../services/prospectos.js';
 import { one, query } from '../db/pool.js';
 import { crearObra, actualizarObra, eliminarObra } from '../services/geofence.js';
 import { eliminarEmpleado } from '../services/employees.js';
@@ -119,6 +120,18 @@ api.put('/admin/imss', requireSuperadmin, async (req, res) => {
     res.json(await guardarIMSS(req.body?.parametros || []));
   } catch (err) {
     res.status(400).json({ error: err.message || 'No se pudo guardar IMSS' });
+  }
+});
+
+// ─── Súper-admin: prospectos que escribieron al bot interesados en el servicio ───
+api.get('/admin/prospectos', requireSuperadmin, async (_req, res) => {
+  res.json(await listarProspectos());
+});
+api.put('/admin/prospectos/:id', requireSuperadmin, async (req, res) => {
+  try {
+    res.json(await actualizarProspecto(req.params.id, req.body || {}));
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'No se pudo actualizar el prospecto' });
   }
 });
 

@@ -348,3 +348,20 @@ ALTER TABLE empresas ADD COLUMN IF NOT EXISTS regla_horas_extra TEXT NOT NULL DE
 -- Esto es un descuento ADICIONAL por cada día de falta, como % del salario diario.
 -- 0 = sin descuento extra (recomendado) · 100 = se descuenta un día completo por falta.
 ALTER TABLE empresas ADD COLUMN IF NOT EXISTS descuento_falta_pct NUMERIC(5,2) NOT NULL DEFAULT 0;
+
+-- ─── Prospectos: números desconocidos que escriben al bot interesados en el servicio ───
+-- El bot les ofrece Nexori RH, toma sus datos y avisa al dueño del sistema.
+CREATE TABLE IF NOT EXISTS prospectos (
+    id              SERIAL PRIMARY KEY,
+    whatsapp        TEXT UNIQUE NOT NULL,      -- últimos 10 dígitos (o el JID si no hay número)
+    wa_raw          TEXT,                      -- número tal como llegó (para contestarle)
+    nombre          TEXT,
+    empresa         TEXT,
+    empleados       INT,
+    interes         TEXT,                      -- demo | promocion | precio
+    primer_mensaje  TEXT,
+    estatus         TEXT NOT NULL DEFAULT 'nuevo', -- nuevo | contactado | demo | cliente | descartado
+    notas           TEXT,
+    creado_en       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);

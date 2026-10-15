@@ -14,6 +14,7 @@ import Incidencias from './views/Incidencias.vue';
 import Horarios from './views/Horarios.vue';
 import Conceptos from './views/Conceptos.vue';
 import Configuracion from './views/Configuracion.vue';
+import Prospectos from './views/Prospectos.vue';
 
 const logged = ref(!!getToken());
 const rol = ref(getRol());
@@ -40,6 +41,7 @@ const vistas = {
   conceptos: Conceptos,
   incidencias: Incidencias,
   configuracion: Configuracion,
+  prospectos: Prospectos,
 };
 // El súper-admin (dueño del sistema) solo administra empresas.
 const menuAdmin = [
@@ -57,7 +59,7 @@ const menuAdmin = [
 ];
 const menu = computed(() =>
   esSuper.value
-    ? [['empresas', '🏢 Empresas'], ['tablas', '📊 Tablas ISR/IMSS']]
+    ? [['empresas', '🏢 Empresas'], ['prospectos', '🎯 Prospectos'], ['tablas', '📊 Tablas ISR/IMSS']]
     : menuAdmin
 );
 const vista = ref(esSuper.value ? 'empresas' : 'empleados');
