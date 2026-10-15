@@ -18,6 +18,7 @@ export function createBaileysChannel() {
   let sock = null;
   let messageHandler = null;
   let reintentos = 0;
+  let credsMe = null; // usuario de la sesión guardada (para conocer el número propio)
   const MAX_REINTENTOS = 5;
 
   // Convierte '5215555555555' → JID de WhatsApp
@@ -27,6 +28,7 @@ export function createBaileysChannel() {
 
   async function start() {
     const { state, saveCreds } = await useMultiFileAuthState(config.whatsapp.baileysAuthDir);
+    credsMe = state.creds.me;
 
     // Usa la versión ACTUAL de WhatsApp Web. Sin esto, Baileys usa una versión fija
     // que WhatsApp rechaza con "Connection Failure (code 405)" y nunca aparece el QR.
@@ -176,8 +178,12 @@ export function createBaileysChannel() {
     messageHandler = handler;
   }
 
-  // Número del WhatsApp vinculado (ej. '5214491234567'), o null si no está conectado.
-  const numero = () => (sock?.user?.id ? fromJid(sock.user.id) : null);
+  // Número del WhatsApp vinculado (ej. '5214491234567'): de la conexión en vivo o,
+  // si aún no conecta, de la sesión guardada (creds.me). null si nunca se vinculó.
+  const numero = () => {
+    const id = sock?.user?.id || credsMe?.id;
+    return id ? fromJid(id) : null;
+  };
 
   return { start, onMessage, sendText, requestLocation, numero, name: 'baileys' };
 }
