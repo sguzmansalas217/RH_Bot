@@ -1,17 +1,252 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexori RH · Panel de Administración</title>
-    <!-- Mapa Leaflet (OpenStreetMap, gratis, sin API key) para elegir ubicación de obras -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexori RH · Asistencia y prenómina por WhatsApp</title>
+  <meta name="description" content="Tus empleados registran su asistencia por WhatsApp con ubicación validada. Permisos, vacaciones, incapacidades y prenómina con ISR e IMSS en un solo panel. Prueba gratis." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:title" content="Nexori RH · Asistencia y prenómina por WhatsApp" />
+  <meta property="og:description" content="Sin checador ni listas en papel. Tus empleados checan por WhatsApp con ubicación y tú lo ves todo en un panel." />
+  <meta property="og:image" content="https://www.rhasitente.com/og.png" />
+  <meta property="og:url" content="https://www.rhasitente.com/" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#075e54" />
+</head>
+<body>
+  <!-- ─── Navegación ─── -->
+  <header class="nav">
+    <div class="contenedor nav-in">
+      <a href="#inicio" class="marca"><span class="logo">N</span> Nexori RH</a>
+      <nav class="links">
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#funciones">Funciones</a>
+        <a href="#panel">El panel</a>
+        <a href="#preguntas">Preguntas</a>
+      </nav>
+      <div class="nav-btns">
+        <a href="/panel/" class="btn btn-borde">Iniciar sesión</a>
+        <a href="#" class="btn btn-wa js-wa">Prueba gratis</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─── Portada ─── -->
+  <section id="inicio" class="hero">
+    <div class="contenedor hero-in">
+      <div class="hero-txt">
+        <span class="pill">🎉 50% de descuento el primer mes a las primeras 10 empresas</span>
+        <h1>Tus empleados checan entrada <span class="resalta">por WhatsApp</span></h1>
+        <p class="sub">
+          Registran su asistencia con <b>ubicación validada</b> y la <b>hora oficial del servidor</b>.
+          Tú ves todo en un panel: retardos, faltas, permisos, vacaciones y prenómina con ISR e IMSS.
+          Sin checador, sin listas en papel y sin instalar nada.
+        </p>
+        <div class="ctas">
+          <a href="#" class="btn btn-blanco btn-grande js-wa">💬 Pide tu prueba gratis</a>
+          <a href="#como-funciona" class="btn btn-transp btn-grande">Ver cómo funciona ↓</a>
+        </div>
+        <ul class="checks">
+          <li>✅ Funciona con el WhatsApp que ya tienen</li>
+          <li>✅ Ideal para obras, sucursales y personal en campo</li>
+        </ul>
+      </div>
+
+      <div class="telefono" aria-hidden="true">
+        <div class="pantalla">
+          <div class="chat-head"><span class="avatar">N</span><div>Asistencia RH<small>en línea</small></div></div>
+          <div class="chat">
+            <div class="msg yo">Llegué 👷<span class="hora">7:58 ✓✓</span></div>
+            <div class="msg bot">¡Buenos días, Juan! Comparte tu ubicación para registrar tu entrada 📍<span class="hora">7:58</span></div>
+            <div class="msg yo"><div class="mapa">📍</div>Ubicación actual<span class="hora">7:58 ✓✓</span></div>
+            <div class="msg bot">✅ <b>Entrada registrada</b><br />07:58 · Obra Torre Norte<br />¡Buen turno!<span class="hora">7:58</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Problema / solución ─── -->
+  <section class="seccion">
+    <div class="contenedor">
+      <h2 class="titulo">¿Te suena familiar?</h2>
+      <div class="antes-despues">
+        <div class="caja antes">
+          <h3>Sin Nexori RH</h3>
+          <ul>
+            <li>❌ Listas de asistencia que llegan tarde, incompletas o ilegibles</li>
+            <li>❌ Un trabajador checa por otro</li>
+            <li>❌ No sabes quién llegó realmente a la obra</li>
+            <li>❌ Permisos y vacaciones pedidos por mensaje que se pierden</li>
+            <li>❌ Días armando la nómina con retardos, faltas y horas extra</li>
+          </ul>
+        </div>
+        <div class="caja despues">
+          <h3>Con Nexori RH</h3>
+          <ul>
+            <li>✅ Cada quien registra su entrada desde su celular, por WhatsApp</li>
+            <li>✅ El sistema valida que esté dentro de la obra o sucursal</li>
+            <li>✅ Ves la asistencia de todos tus centros de trabajo en tiempo real</li>
+            <li>✅ Permisos y vacaciones se piden por WhatsApp y se aprueban con un clic</li>
+            <li>✅ Retardos, faltas y horas extra listos para la prenómina</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Cómo funciona ─── -->
+  <section id="como-funciona" class="seccion gris">
+    <div class="contenedor">
+      <h2 class="titulo">Así de fácil funciona</h2>
+      <p class="titulo-sub">Tu equipo no instala nada ni aprende un sistema nuevo: solo usa WhatsApp.</p>
+      <div class="pasos">
+        <div class="paso">
+          <span class="num">1</span>
+          <div class="paso-ico">💬</div>
+          <h3>Escribe "Llegué"</h3>
+          <p>El trabajador le escribe al WhatsApp de la empresa, como a cualquier contacto. También puede escribir "Ya me voy" para su salida.</p>
+        </div>
+        <div class="paso">
+          <span class="num">2</span>
+          <div class="paso-ico">📍</div>
+          <h3>Comparte su ubicación</h3>
+          <p>El sistema revisa que esté dentro de la <b>geocerca</b> de su obra o sucursal y registra la hora oficial del servidor, no la del celular.</p>
+        </div>
+        <div class="paso">
+          <span class="num">3</span>
+          <div class="paso-ico">📊</div>
+          <h3>Tú lo ves al momento</h3>
+          <p>En tu panel aparecen entradas, salidas, retardos y faltas de todos tus centros de trabajo, listos para la prenómina.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Funciones ─── -->
+  <section id="funciones" class="seccion">
+    <div class="contenedor">
+      <h2 class="titulo">Todo lo que necesitas para controlar a tu personal</h2>
+      <div class="funciones">
+        <div class="funcion"><span>📍</span><h3>Geocercas por obra o sucursal</h3><p>Define en el mapa el área de cada centro de trabajo. Si alguien registra fuera, se genera una incidencia.</p></div>
+        <div class="funcion"><span>⏱️</span><h3>Hora oficial</h3><p>Siempre se usa la hora del servidor. Cambiar la hora del celular no sirve de nada.</p></div>
+        <div class="funcion"><span>🕗</span><h3>Horarios y turnos</h3><p>Horarios por día y por empleado. Retardos, salidas anticipadas y faltas se calculan solos.</p></div>
+        <div class="funcion"><span>🏖️</span><h3>Permisos y vacaciones</h3><p>El trabajador los pide por WhatsApp, consulta sus días disponibles y recibe la respuesta en su celular.</p></div>
+        <div class="funcion"><span>🩺</span><h3>Incapacidades</h3><p>Reporta su incapacidad y envía la foto del comprobante médico por el mismo chat.</p></div>
+        <div class="funcion"><span>✅</span><h3>Aprobaciones desde WhatsApp</h3><p>Como administrador puedes aprobar o rechazar solicitudes desde el panel o respondiendo por WhatsApp.</p></div>
+        <div class="funcion"><span>💰</span><h3>Prenómina con ISR e IMSS</h3><p>Sueldo, horas extra (con la regla que tú elijas), bonos, préstamos y deducciones de ISR e IMSS.</p></div>
+        <div class="funcion"><span>📄</span><h3>Reportes en Excel y PDF</h3><p>Asistencia por trabajador, por obra y por periodo, y recibos de prenómina en PDF.</p></div>
+        <div class="funcion"><span>🤖</span><h3>Entiende mensajes naturales</h3><p>"Necesito permiso mañana", "¿cuántas vacaciones me quedan?", "¿cuántas horas trabajé del 1 al 15?"… el bot lo entiende.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Vista del panel ─── -->
+  <section id="panel" class="seccion gris">
+    <div class="contenedor panel-in">
+      <div class="panel-txt">
+        <h2 class="titulo izq">Un panel claro para RH y para el dueño</h2>
+        <p>Desde la computadora o el celular ves en tiempo real quién llegó, quién no, y qué solicitudes están pendientes.</p>
+        <ul class="checks oscuro">
+          <li>✅ Asistencias y bitácora por día, empleado y obra</li>
+          <li>✅ Aprobaciones de permisos, vacaciones e incapacidades</li>
+          <li>✅ Nómina por periodo con recibos en PDF</li>
+          <li>✅ Varias obras, sucursales o centros de trabajo</li>
+        </ul>
+        <a href="#" class="btn btn-wa btn-grande js-wa">💬 Quiero verlo funcionando</a>
+      </div>
+      <div class="navegador" aria-hidden="true">
+        <div class="nav-barra"><i></i><i></i><i></i><span>rhasitente.com/panel</span></div>
+        <div class="nav-cuerpo">
+          <aside>
+            <b><span class="logo mini">N</span> Nexori RH</b>
+            <a>👥 Empleados</a><a>📍 Obras</a><a class="on">🕐 Asistencias</a><a>✅ Aprobaciones</a><a>💰 Nómina</a>
+          </aside>
+          <main>
+            <div class="kpis">
+              <div><small>Presentes hoy</small><b>58 / 63</b></div>
+              <div><small>Retardos</small><b class="amarillo">4</b></div>
+              <div><small>Pendientes</small><b class="rojo">3</b></div>
+            </div>
+            <table>
+              <tr><th>Trabajador</th><th>Obra</th><th>Entrada</th><th>Estado</th></tr>
+              <tr><td>Juan Pérez</td><td>Torre Norte</td><td>07:58</td><td><span class="b ok">A tiempo</span></td></tr>
+              <tr><td>Luis Ramírez</td><td>Los Pinos</td><td>08:00</td><td><span class="b ok">A tiempo</span></td></tr>
+              <tr><td>Pedro Gómez</td><td>Torre Norte</td><td>08:17</td><td><span class="b tarde">Retardo</span></td></tr>
+              <tr><td>Marco Díaz</td><td>Nave Sur</td><td>—</td><td><span class="b falta">Sin registro</span></td></tr>
+            </table>
+          </main>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Para quién ─── -->
+  <section class="seccion">
+    <div class="contenedor">
+      <h2 class="titulo">Hecho para empresas con personal fuera de la oficina</h2>
+      <div class="giros">
+        <span>🏗️ Construcción</span><span>🛡️ Seguridad privada</span><span>🧹 Limpieza y mantenimiento</span>
+        <span>🏭 Manufactura</span><span>🏬 Comercios y sucursales</span><span>🍽️ Restaurantes</span><span>🚚 Logística y reparto</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Promoción ─── -->
+  <section class="promo">
+    <div class="contenedor promo-in">
+      <div class="pct">50%</div>
+      <div>
+        <h2>de descuento el primer mes para las primeras 10 empresas</h2>
+        <p>Incluye prueba gratis y te ayudamos a dar de alta tus obras, horarios y empleados.</p>
+      </div>
+      <a href="#" class="btn btn-blanco btn-grande js-wa">Aparta tu lugar →</a>
+    </div>
+  </section>
+
+  <!-- ─── Preguntas frecuentes ─── -->
+  <section id="preguntas" class="seccion">
+    <div class="contenedor angosto">
+      <h2 class="titulo">Preguntas frecuentes</h2>
+      <details><summary>¿Mis empleados tienen que instalar una app?</summary><p>No. Solo usan WhatsApp, que ya tienen en su celular. Le escriben al número de tu empresa como a cualquier contacto.</p></details>
+      <details><summary>¿Cómo evito que alguien cheque por otro o desde su casa?</summary><p>Cada registro se hace desde el WhatsApp registrado de cada trabajador y con su ubicación. Si está fuera de la geocerca de la obra o sucursal, no se registra y se genera una incidencia. La hora es la del servidor, no la del celular.</p></details>
+      <details><summary>¿Necesito comprar un checador o algún equipo?</summary><p>No. Funciona con los celulares de tu personal y una computadora o celular para entrar al panel.</p></details>
+      <details><summary>¿Calcula la nómina?</summary><p>Calcula la prenómina: sueldo por días trabajados, horas extra, bonos, préstamos y deducciones de ISR e IMSS, con recibos en PDF. Hoy no timbra el CFDI de nómina; la exportas para que tu contador o tu sistema de timbrado la timbre.</p></details>
+      <details><summary>¿Puedo manejar varias obras o sucursales?</summary><p>Sí. Das de alta cada centro de trabajo con su ubicación y asignas a cada empleado a una o varias obras.</p></details>
+      <details><summary>¿Mis datos están seguros?</summary><p>La información de cada empresa está separada y el panel requiere usuario y contraseña. Consulta nuestro <a href="/aviso-privacidad">aviso de privacidad</a>.</p></details>
+      <details><summary>¿Cuánto cuesta?</summary><p>Depende del número de empleados. Escríbenos por WhatsApp y te enviamos tu cotización; las primeras 10 empresas tienen 50% de descuento el primer mes.</p></details>
+    </div>
+  </section>
+
+  <!-- ─── Contacto final ─── -->
+  <section id="contacto" class="final">
+    <div class="contenedor final-in">
+      <div>
+        <h2>Pide tu prueba gratis hoy</h2>
+        <p>Escríbenos por WhatsApp. Un asesor te contacta para mostrarte el sistema funcionando con tu propia empresa.</p>
+        <a href="#" class="btn btn-blanco btn-grande js-wa">💬 Escribir por WhatsApp</a>
+        <p class="tel">📲 <b class="js-num">449 550 2932</b></p>
+      </div>
+      <div class="qr-caja">
+        <img class="js-qr" alt="Código QR para escribirnos por WhatsApp" width="200" height="200" />
+        <small>Escanea con tu celular</small>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <div class="contenedor pie-in">
+      <div><span class="logo mini">N</span> <b>Nexori RH</b> · © <span class="js-anio">2026</span> Nexori System · Aguascalientes, México</div>
+      <div class="pie-links">
+        <a href="/aviso-privacidad">Aviso de privacidad</a>
+        <a href="mailto:contacto@nexorisystem.com">contacto@nexorisystem.com</a>
+        <a href="/panel/">Iniciar sesión</a>
+      </div>
+    </div>
+  </footer>
+
+  <a href="#" class="flotante js-wa" aria-label="Escríbenos por WhatsApp">💬</a>
+
+  <script type="module" src="/src/landing/main.js"></script>
+</body>
 </html>

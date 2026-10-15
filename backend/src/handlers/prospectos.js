@@ -117,7 +117,7 @@ export async function manejarProspecto(msg, estado, responder, channel) {
         `📲 ${legible(from)}\n` +
         (p.primer_mensaje ? `💬 Primer mensaje: "${p.primer_mensaje}"\n` : '') +
         `\n👉 Escríbele por WhatsApp para comenzar la prueba:\n${linkWa(from)}` +
-        `\n\n📋 Ver todos en tu panel:\nhttps://www.rhasitente.com/?vista=prospectos`
+        `\n\n📋 Ver todos en tu panel:\nhttps://www.rhasitente.com/panel/?vista=prospectos`
     );
     return responder(
       from,
