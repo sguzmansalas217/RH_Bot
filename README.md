@@ -61,7 +61,7 @@ cd ../frontend && npm install && npm run dev   # http://localhost:5173
 Al arrancar el backend, Baileys imprime un **QR** en consola: escanéalo con el WhatsApp
 que actuará como número del sistema.
 
-**Login del panel:** `admin@demo.com` / `admin123` (cámbialo después del primer acceso).
+**Login demo (solo desarrollo, con `SEED_DEMO=true`):** `admin@demo.com` / `admin123`. En producción no se crea.
 
 ## Simulación sin WhatsApp (terminal)
 

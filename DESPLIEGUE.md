@@ -104,8 +104,8 @@ Sal del log con `Ctrl+C` (el contenedor sigue corriendo).
 
 ## 11. Usar el sistema
 
-- **Panel:** `http://LA_IP_DEL_DROPLET/` → login `admin@demo.com` / `admin123`
-  (cámbialo enseguida).
+- **Panel:** `https://www.rhnexori.com/panel/` → entra con el súper-admin (`SUPERADMIN_EMAIL`).
+  El usuario demo solo se crea con `SEED_DEMO=true` (desarrollo).
 - Registra tu número de prueba en **Empleados** y ajusta la geocerca en **Obras**.
 - Escribe al bot desde tu teléfono: *"Llegué"* + compartir ubicación.
 
