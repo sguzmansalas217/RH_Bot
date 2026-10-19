@@ -1,11 +1,22 @@
-# Sitio principal: www.rhasitente.com (con su certificado HTTPS automático).
-www.rhasitente.com {
+# Sitio principal: www.rhnexori.com (con su certificado HTTPS automático).
+www.rhnexori.com {
 	# Caddy obtiene y renueva solo el certificado HTTPS (Let's Encrypt)
-	# y reenvía todo el tráfico (panel + API + /webhook) a la app interna.
+	# y reenvía todo el tráfico (página, panel, API y /webhook) a la app interna.
 	reverse_proxy app:3000
 }
 
-# El dominio sin www redirige al www (para que ambos funcionen).
-rhasitente.com {
-	redir https://www.rhasitente.com{uri}
+# El dominio sin www redirige al www.
+rhnexori.com {
+	redir https://www.rhnexori.com{uri} permanent
+}
+
+# Dominio anterior: se sigue sirviendo /webhook (Meta puede tenerlo configurado ahí)
+# y todo lo demás redirige al dominio nuevo para no perder links viejos.
+www.rhasitente.com, rhasitente.com {
+	handle /webhook* {
+		reverse_proxy app:3000
+	}
+	handle {
+		redir https://www.rhnexori.com{uri} permanent
+	}
 }

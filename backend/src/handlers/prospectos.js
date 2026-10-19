@@ -39,7 +39,7 @@ const PRECIO =
   `• *$59 + IVA al mes* por cada empleado adicional\n\n` +
   `Ejemplo: con 25 empleados pagarías $899 + (15 × $59) = *$1,784 + IVA* al mes.\n\n` +
   `🎉 Las *primeras 10 empresas* tienen *50% de descuento el primer mes*.\n` +
-  `Calcula tu precio en https://www.rhasitente.com/#precios\n\n` +
+  `Calcula tu precio en https://www.rhnexori.com/#precios\n\n` +
   `Para hacerte la *prueba gratis* y tu cotización exacta necesito 3 datos rápidos. ¿Cómo te llamas?`;
 
 const EMPLEADO = (num) =>
@@ -121,7 +121,7 @@ export async function manejarProspecto(msg, estado, responder, channel) {
         `📲 ${legible(from)}\n` +
         (p.primer_mensaje ? `💬 Primer mensaje: "${p.primer_mensaje}"\n` : '') +
         `\n👉 Escríbele por WhatsApp para comenzar la prueba:\n${linkWa(from)}` +
-        `\n\n📋 Ver todos en tu panel:\nhttps://www.rhasitente.com/panel/?vista=prospectos`
+        `\n\n📋 Ver todos en tu panel:\nhttps://www.rhnexori.com/panel/?vista=prospectos`
     );
     return responder(
       from,

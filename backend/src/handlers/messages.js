@@ -29,7 +29,7 @@ const menuAdmin = (nombre) =>
 • *aprobar vacacion 8* / *rechazar vacacion 8*
 • *aprobar incapacidad 5* / *rechazar incapacidad 5*
 
-Todo lo demás (empleados, obras, nómina, reportes) lo manejas en tu panel: https://www.rhasitente.com/panel/`;
+Todo lo demás (empleados, obras, nómina, reportes) lo manejas en tu panel: https://www.rhnexori.com/panel/`;
 
 // mostrarSueldo=false → oculta la opción de consultar sueldo/estimado de cobro.
 const menuTexto = (empresa, mostrarSueldo = true) =>
