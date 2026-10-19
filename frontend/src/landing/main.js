@@ -22,6 +22,21 @@ function aplicar() {
   }
 }
 
+// ─── Píxel de Meta: eventos de interés (el PageView ya lo manda el código del <head>) ───
+const pixel = (...args) => { try { window.fbq?.(...args); } catch { /* sin píxel no pasa nada */ } };
+document.querySelectorAll('.js-wa').forEach((a) => {
+  a.addEventListener('click', () => pixel('track', 'Contact', { content_name: a.textContent.trim().slice(0, 60) }));
+});
+document.querySelectorAll('a[href="/panel/"]').forEach((a) => {
+  a.addEventListener('click', () => pixel('trackCustom', 'IniciarSesion'));
+});
+let calcUsada = false;
+['calc-emp', 'calc-num'].forEach((id) => document.getElementById(id)?.addEventListener('change', () => {
+  if (calcUsada) return;
+  calcUsada = true;
+  pixel('track', 'ViewContent', { content_name: 'Calculadora de precios' });
+}));
+
 document.querySelectorAll('.js-anio').forEach((el) => { el.textContent = new Date().getFullYear(); });
 
 // ─── Calculadora de precio: $899 incluye 10 empleados + $59 por empleado adicional, más IVA ───
